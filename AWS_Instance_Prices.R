@@ -5,6 +5,7 @@ library(dplyr)
 aws_data <- read_csv("Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/Amazon EC2 Instance Comparison.csv")
 
 #here is a test
+#this is another test
 
 # removing unnecessary columns
 
