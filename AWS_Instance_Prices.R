@@ -1,84 +1,29 @@
 library(dplyr)
 
-# importing csv export from https://instances.vantage.sh
+# importing csv export from https://instances.vantage.sh, one dataset with 1 year RI prices, one dataset with 3 year RI prices
 
-aws_data <- read_csv("Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/Amazon EC2 Instance Comparison.csv")
+aws_data1 <- read.csv("~/Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/Instance data/EC2_data_1_year_RI.csv")
+aws_data2 <- read.csv("~/Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/Instance data/EC2_data_3_year_RI.csv")
 
-# removing unnecessary columns
+# removing unnecessary columns from aws_data1
 
-aws_data_trimmed <- aws_data %>%
-  select(c(`API Name`, `Instance Memory`, vCPUs, `Network Performance`, `Linux On Demand cost`))
-
-# renaming the columns
-
-aws_data_trimmed <- aws_data_trimmed %>% 
-  rename(API_Name = `API Name`, Memory_GiB = `Instance Memory`, Network_Gbit = `Network Performance`
-         , Linux_Costs_Dollar_per_Hour = `Linux On Demand cost`)
-
-# Keeping only the numeric values
-
-aws_data_trimmed$Memory_GiB <- as.numeric(gsub("[^0-9.]", "", aws_data_trimmed$Memory_GiB))
-aws_data_trimmed$Linux_Costs_Dollar_per_Hour <- as.numeric(gsub("[^0-9.]", "", aws_data_trimmed$Linux_Costs_Dollar_per_Hour))
-aws_data_trimmed$vCPUs <- as.numeric(sub(" .*", "", aws_data_trimmed$vCPUs))
-aws_data_trimmed$Network_Gbit <- as.numeric(gsub("[^0-9.]", "", aws_data_trimmed$Network_Gbit))
-
-# Fixing the rows with x * 100 Gbit
-
-aws_data_trimmed$Network_Gbit[aws_data_trimmed$Network_Gbit == 8100] <- 800
-aws_data_trimmed$Network_Gbit[aws_data_trimmed$Network_Gbit == 4100] <- 400
-
-# Remove rows with N/A entries
-
-aws_data_trimmed <- na.omit(aws_data_trimmed)
-
-# Adding CPU/$ and GiB/$
-
-aws_data_trimmed$vCPUs_per_Dollar <- aws_data_trimmed$vCPUs / aws_data_trimmed$Linux_Costs_Dollar_per_Hour
-aws_data_trimmed$GiB_per_Dollar <- aws_data_trimmed$Memory_GiB / aws_data_trimmed$Linux_Costs_Dollar_per_Hour
-aws_data_trimmed$Gbit_per_Dollar <- aws_data_trimmed$Network_Gbit / aws_data_trimmed$Linux_Costs_Dollar_per_Hour
-
-# Example workload price on different instances: Workload running 1 CPU hour and scanning 10 GiB of data
-
-#aws_data_trimmed$Costs_for_one_CPU_hour <- (3600 / aws_data_trimmed$vCPUs) * (aws_data_trimmed$Linux_Costs_Dollar_per_Hour / 3600)
-
-# Approx. handling GiB like GB
-
-aws_data_trimmed$Costs_for_one_CPU_hour_with_Network <- 
-  ((3600 / aws_data_trimmed$vCPUs) + (10 * 8) / (aws_data_trimmed$Network_Gbit * 0.8)) * (aws_data_trimmed$Linux_Costs_Dollar_per_Hour / 3600)
-
-# Look at the prices beginning at 32 CPUs
-
-#aws_data_plus_32CPU <- aws_data_trimmed[aws_data_trimmed$vCPUs >= 32, ]
-
-# Look at data with exactly 32 CPUs
-
-#aws_data_32CPU <- aws_data_trimmed[aws_data_trimmed$vCPUs == 32, ]
-
-# Look at data with above 36 CPUs and a minimum of GiB 192
-
-#aws_data_36CPU_192GB <- aws_data_trimmed[aws_data_trimmed$vCPUs >= 36 & aws_data_trimmed$Memory_GiB >= 192, ]
-
-# dataset without burstable instances "t"
-
-aws_data_trimmed_without_burstable <- aws_data_trimmed[!grepl("^t", aws_data_trimmed$API_Name), ]
-
-# dataset with best vCPU/$ instances
-
-aws_best_instances <- aws_data_trimmed[grepl("^m6g\\.|^c6g\\.|^r6g\\.|^a1\\.", aws_data_trimmed$API_Name), ]
-
-
-
-# dataset with all price options
-
-aws_data_trimmed_all_prices <- aws_data %>%
-  select(c(`API Name`, `Instance Memory`, vCPUs, `Network Performance`, `Linux On Demand cost`, `Linux Reserved cost`, `Linux Spot Minimum cost`))
+aws_data_trimmed_all_prices <- aws_data1 %>%
+  select(c(`API.Name`, `Instance.Memory`, vCPUs, `Network.Performance`, `Linux.On.Demand.cost`, `Linux.Reserved.cost`, `Linux.Spot.Minimum.cost`))
 
 # renaming the columns
 
 aws_data_trimmed_all_prices <- aws_data_trimmed_all_prices %>% 
-  rename(API_Name = `API Name`, Memory_GiB = `Instance Memory`, Network_Gbit = `Network Performance`
-         , On_demand_Costs_Dollar_per_Hour = `Linux On Demand cost`, RI_Costs_Dollar_per_Hour = `Linux Reserved cost`, 
-         Spot_Costs_Dollar_per_Hour = `Linux Spot Minimum cost`)
+  rename(API_Name = `API.Name`, Memory_GiB = `Instance.Memory`, Network_Gbit = `Network.Performance`
+         , On_demand_Costs_Dollar_per_Hour = `Linux.On.Demand.cost`, RI_Costs_Dollar_per_Hour = `Linux.Reserved.cost`, 
+         Spot_Costs_Dollar_per_Hour = `Linux.Spot.Minimum.cost`)
+
+# keeping only the RI prices from aws_data2
+
+...
+
+# adding the prices to the trimmed dataset
+
+...
 
 # Keeping only the numeric values
 
