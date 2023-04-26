@@ -1,3 +1,5 @@
+# ---------------------- DATA PREPARATION ---------------------- # 
+
 library(dplyr)
 
 # importing csv export from https://instances.vantage.sh, one dataset with 1 year RI prices, one dataset with 3 year RI prices
@@ -73,10 +75,21 @@ aws_data_trimmed_all_prices$Gbit_per_Dollar_Spot <- aws_data_trimmed_all_prices$
 
 aws_data_trimmed_all_prices_2 <- aws_data_trimmed_all_prices[!grepl("^a", aws_data_trimmed_all_prices$API_Name), ]
 
+# add dataset with example workload
+# Example workload price on different instances: Workload running 1 CPU hour and scanning 10 GiB of data -> 1h/vCPUs + (10*8 Gbit / networkgbit * 0.8)) * costs
 
-# Implementing algorithm to find cheapest On demand instance for given CPU/h usage (e.g. 240 CPU hours are required per day)
+aws_data_trimmed_all_prices_3 <- aws_data_trimmed_all_prices_2
+aws_data_trimmed_all_prices_3$Workload <- 
+  ((3600 / aws_data_trimmed_all_prices_3$vCPUs) + (10 * 8) / (aws_data_trimmed_all_prices_3$Network_Gbit * 0.8)) * (aws_data_trimmed_all_prices_3$On_demand_Costs_Dollar_per_Hour / 3600)
 
-find_cheapest_instance <- function(CPU_hours_per_day) {
+
+
+
+# ---------------------- ALGORITHM FOR ON DEMAND ---------------------- # 
+
+# Implementing algorithm to find cheapest On demand instance for given CPU/h usage (e.g. 240 CPU hours are required per day) -> using only vCPUs as metric
+
+find_cheapest_instance_on_demand <- function(CPU_hours_per_day) {
   
   CPU_hours_per_hour <- CPU_hours_per_day / 24
   current_instance_price <- Inf
@@ -117,13 +130,19 @@ find_cheapest_instance <- function(CPU_hours_per_day) {
   return(result)
 }
 
+find_cheapest_instance_on_demand(240)
 
-find_cheapest_instance(24000)
-
+# Next:
+#   - Research on Savings Plans -> Can you upgrade in the middle? -> done
+#   - Research on Interruption Rates with Spot -> Calculate monetary costs of what happens when workload gets interrupted -> done
+#   - Maybe model all parameters in powerpoint
+#   - What input would be needed to take all those parameters into account
+#   - Graph displays base workload with certain instance, 
+#   - get spot prices of last 3 months and get average
 
 # Notes:
 #   - Also consider other pricing options like RI or Spot
-#   - Need to calculate example workload considering RAM and Network, as the ones with only 1 vCPU tend to perform best
+#   - Need to calculate example workload considering RAM and Network, as the ones with only 1 vCPU tend to perform best when just vCPUs are important
 #   - Connect with AWS API to get up to date numbers
 
 #   - Wie entscheide ich wann ich mehr CPUs brauche bzw. wie viele sind realistisch zu parallelisieren? Wie viel kostet das?
