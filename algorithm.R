@@ -89,6 +89,8 @@ aws_data_trimmed_all_prices_3$Workload <-
 
 # Implementing algorithm to find cheapest On demand instance for given CPU/h usage (e.g. 240 CPU hours are required per day) -> using only vCPUs as metric
 
+# base workload ist ein vCPU/h wert, schwankender workload als array von 24 werten
+
 find_cheapest_instance_on_demand <- function(CPU_hours_per_day) {
   
   CPU_hours_per_hour <- CPU_hours_per_day / 24
@@ -130,22 +132,15 @@ find_cheapest_instance_on_demand <- function(CPU_hours_per_day) {
   return(result)
 }
 
-find_cheapest_instance_on_demand(240)
+find_cheapest_instance_on_demand(24000)
 
 # Next:
-#   - Research on Savings Plans -> Can you upgrade in the middle? -> done
-#   - Research on Interruption Rates with Spot -> Calculate monetary costs of what happens when workload gets interrupted -> done
-#   - Maybe model all parameters in powerpoint
-#   - What input would be needed to take all those parameters into account
-#   - Graph displays base workload with certain instance, 
-#   - get spot prices of last 3 months and get average
-
-# Notes:
-#   - Also consider other pricing options like RI or Spot
-#   - Need to calculate example workload considering RAM and Network, as the ones with only 1 vCPU tend to perform best when just vCPUs are important
-#   - Connect with AWS API to get up to date numbers
-
-#   - Wie entscheide ich wann ich mehr CPUs brauche bzw. wie viele sind realistisch zu parallelisieren? Wie viel kostet das?
+#   - Savings Plans mit einbauen -> Annahme ist, dass der workload ewig läuft -> dementsprechend sollte 3 Jahresplan am besten sein (was ist mit RIs? Daten dafür?)
+#   - Daten sind für RIs -> gleich wie "Instance Savings Plans" -> für compute savings plans brauche ich noch die Daten von AWS -> dann kann ich für alles berechnen außer Spot
+#   - Ausgabe verbesseren und verschönern: Wie heißt die Instanz? Wie viele brauche ich davon? Wie teuer wird das? In welchem Plan soll man das kaufen?
+#   - Schwankenden Workload einbauen durch das mitgeben eines arrays mit 24 werten
+#   - Eingabe direkt mit CPU hours pro Stunde und nicht pro Tag
+#   - Bei kleinen Instanzen nicht linear skalieren sondern immer mit einem Faktor sodass sich Leistung z.B. nicht verdoppelt, sondern nur ver-1,8-facht
 
 
 
