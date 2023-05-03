@@ -97,7 +97,7 @@ OD.Spot.RI.shared.all.prices <- OD.Spot.RI.shared.all.prices[!grepl("^t", OD.Spo
 #aws_data_trimmed_all_prices_2 <- OD_Spot_RI_shared_all_prices[!grepl("^a", OD_Spot_RI_shared_all_prices$API_Name), ]
 
 # Adding vCPU/$ for on demand prices
-OD.Spot.RI.shared.all.prices$vCPUs.per.Dollar.On.Demand <- OD.Spot.RI.shared.all.prices$vCPUs / OD.Spot.RI.shared.all.prices$OD.costs
+#OD.Spot.RI.shared.all.prices$vCPUs.per.Dollar.On.Demand <- OD.Spot.RI.shared.all.prices$vCPUs / OD.Spot.RI.shared.all.prices$OD.costs
 
 
 
@@ -154,6 +154,31 @@ SP.data.merge.datasets <- function() {
 
 SP.data.merge.datasets()
 
+# exclude burstable instances "t"
+SP.shared.all.prices <- SP.shared.all.prices[!grepl("^t", SP.shared.all.prices$API.Name), ]
+
+
+
+# -------------------------------------- FINAL DATASETS --------------------------------------- #
+
+# Data set with all prices, Spot included 
+aws.shared.all.prices <- merge(OD.Spot.RI.shared.all.prices, SP.shared.all.prices, by = "API.Name", all = TRUE)
+
+# omitting all na values for now
+aws.shared.all.prices <- na.omit(aws.shared.all.prices)
+
+# Data set with all prices, Spot excluded 
+aws.shared.all.prices.without.Spot <- aws.shared.all.prices[ , -6]
+
+# Data set with only on demand prices for basic version of algorithm
+aws.all.prices.OD.only <- aws.shared.all.prices[ , 1:5]
+
+
+
+# still missing:
+#   - Spot Interruption Frequencies
+#   - RI Market
+#   (- Prices for dedicated)
 
 
 
