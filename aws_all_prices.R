@@ -3,207 +3,158 @@
 # ------------------------------------------------------------------------------------------------------------------- #
 
 
-# loading libraries
+# loading libraries -- could be extracted to function
 library(dplyr)
 library(tidyverse)
 
 
 # -------------------------------------- ON DEMAND, SPOT, RESERVED INSTANCES --------------------------------------- #
 
-# importing all raw data as csv files
-RI_data_shared_standard_1year_noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_noUpfront.csv")
-RI_data_shared_standard_1year_partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_partialUpfront.csv")
-RI_data_shared_standard_1year_allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_allUpfront.csv")
-RI_data_shared_standard_3year_noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_noUpfront.csv")
-RI_data_shared_standard_3year_partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_partialUpfront.csv")
-RI_data_shared_standard_3year_allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_allUpfront.csv")
-RI_data_shared_convertible_1year_noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_noUpfront.csv")
-RI_data_shared_convertible_1year_partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_partialUpfront.csv")
-RI_data_shared_convertible_1year_allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_allUpfront.csv")
-RI_data_shared_convertible_3year_noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_noUpfront.csv")
-RI_data_shared_convertible_3year_partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_partialUpfront.csv")
-RI_data_shared_convertible_3year_allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_allUpfront.csv")
+# importing all raw data as csv files -- could be extracted to function
+RI.data.shared.standard.1year.noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_noUpfront.csv")
+RI.data.shared.standard.1year.partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_partialUpfront.csv")
+RI.data.shared.standard.1year.allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_1year_allUpfront.csv")
+RI.data.shared.standard.3year.noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_noUpfront.csv")
+RI.data.shared.standard.3year.partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_partialUpfront.csv")
+RI.data.shared.standard.3year.allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_standard_3year_allUpfront.csv")
+RI.data.shared.convertible.1year.noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_noUpfront.csv")
+RI.data.shared.convertible.1year.partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_partialUpfront.csv")
+RI.data.shared.convertible.1year.allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_1year_allUpfront.csv")
+RI.data.shared.convertible.3year.noUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_noUpfront.csv")
+RI.data.shared.convertible.3year.partialUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_partialUpfront.csv")
+RI.data.shared.convertible.3year.allUpFront <- read.csv("~/bachelor-thesis/aws_raw_data/aws_OD_Spot_RI_shared_convertible_3year_allUpfront.csv")
 
-
+# -- could be extracted to function
 # copy the first data set to build one big data set
-OD_Spot_RI_shared_all_prices <- RI_data_shared_standard_1year_noUpFront
+OD.Spot.RI.shared.all.prices <- RI.data.shared.standard.1year.noUpFront
 
 # removing unnecessary columns    
-OD_Spot_RI_shared_all_prices <- OD_Spot_RI_shared_all_prices %>%
+OD.Spot.RI.shared.all.prices <- OD.Spot.RI.shared.all.prices %>%
   select(c(`API.Name`, vCPUs, `Instance.Memory`, `Network.Performance`, `Linux.On.Demand.cost`, `Linux.Spot.Minimum.cost`))
 
 # renaming the columns
-OD_Spot_RI_shared_all_prices <- OD_Spot_RI_shared_all_prices %>% 
-  rename(API_Name = `API.Name`, Memory_GiB = `Instance.Memory`, Network_Gbit = `Network.Performance`
-         , Costs_On_Demand = `Linux.On.Demand.cost`, Costs_Spot = `Linux.Spot.Minimum.cost`)
-
-# now keeping only the RI prices from each data set to avoid overhead
-#for (dataset in seq_along(all_RI_files)) {
-#  all_RI_files[[dataset]] <- all_RI_files[[dataset]][, "Linux.Reserved.cost", drop = FALSE]
-#}
-
-RI_data_shared_standard_1year_noUpFront <- RI_data_shared_standard_1year_noUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_1year_noUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_standard_1year_partialUpFront <- RI_data_shared_standard_1year_partialUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_1year_partialUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_standard_1year_allUpFront <- RI_data_shared_standard_1year_allUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_1year_allUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_standard_3year_noUpFront <- RI_data_shared_standard_3year_noUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_3year_noUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_standard_3year_partialUpFront <- RI_data_shared_standard_3year_partialUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_3year_partialUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_standard_3year_allUpFront <- RI_data_shared_standard_3year_allUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_standard_3year_allUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_1year_noUpFront <- RI_data_shared_convertible_1year_noUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_1year_noUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_1year_partialUpFront <- RI_data_shared_convertible_1year_partialUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_1year_partialUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_1year_allUpFront <- RI_data_shared_convertible_1year_allUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_1year_allUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_3year_noUpFront <- RI_data_shared_convertible_3year_noUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_3year_noUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_3year_partialUpFront <- RI_data_shared_convertible_3year_partialUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_3year_partialUpFront = `Linux.Reserved.cost`)
-
-RI_data_shared_convertible_3year_allUpFront <- RI_data_shared_convertible_3year_allUpFront %>% 
-  select(c(Linux.Reserved.cost)) %>% 
-  rename(Costs_RI_shared_convertible_3year_allUpFront = `Linux.Reserved.cost`)
+OD.Spot.RI.shared.all.prices <- OD.Spot.RI.shared.all.prices %>% 
+  rename(Memory.GiB = `Instance.Memory`, Network.Gbit = `Network.Performance`, 
+         OD.costs = `Linux.On.Demand.cost`, Spot.costs = `Linux.Spot.Minimum.cost`)
 
 
-#all_RI_files <- list(RI_data_shared_convertible_1year_allUpFront, RI_data_shared_standard_1year_partialUpFront, RI_data_shared_standard_1year_allUpFront, 
-#                     RI_data_shared_standard_3year_noUpFront, RI_data_shared_standard_3year_partialUpFront, RI_data_shared_standard_3year_allUpFront,
-#                     RI_data_shared_convertible_1year_noUpFront, RI_data_shared_convertible_1year_partialUpFront, RI_data_shared_convertible_1year_allUpFront,
-#                     RI_data_shared_convertible_3year_noUpFront, RI_data_shared_convertible_3year_partialUpFront, RI_data_shared_convertible_3year_allUpFront)
+# function for preparing all RI data to be merged together
+OD.Spot.RI.data.prepare.datasets <- function(data, input.tenancy, plan, duration, payment) {
+  
+  column.name <- paste("RI.costs.", input.tenancy, ".", plan, ".", duration, "year.", gsub(" ", "", payment), sep = "")
+  
+  df <- data %>%
+    select(c(API.Name, Linux.Reserved.cost)) %>%
+    rename(!!column.name := Linux.Reserved.cost) %>%
+    distinct(API.Name, .keep_all = TRUE)
+}
 
-# binding all prices together
-OD_Spot_RI_shared_all_prices <- cbind(OD_Spot_RI_shared_all_prices, RI_data_shared_standard_1year_noUpFront, RI_data_shared_standard_1year_partialUpFront, RI_data_shared_standard_1year_allUpFront, 
-                                      RI_data_shared_standard_3year_noUpFront, RI_data_shared_standard_3year_partialUpFront, RI_data_shared_standard_3year_allUpFront,
-                                      RI_data_shared_convertible_1year_noUpFront, RI_data_shared_convertible_1year_partialUpFront, RI_data_shared_convertible_1year_allUpFront,
-                                      RI_data_shared_convertible_3year_noUpFront, RI_data_shared_convertible_3year_partialUpFront, RI_data_shared_convertible_3year_allUpFront)
+# merging all data frames based on matching API names and creating final SP data set
+OD.Spot.RI.data.merge.datasets <- function() {
+  
+  # using the SP.data.split function to create each dataset
+  df_list <- list(df0 <- OD.Spot.RI.shared.all.prices,
+                  df1 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.1year.noUpFront, "shared", "Standard", 1, "No Upfront")[, 1:2],
+                  df2 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.1year.partialUpFront, "shared", "Standard", 1, "Partial Upfront")[, 1:2],
+                  df3 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.1year.allUpFront, "shared", "Standard", 1, "All Upfront")[, 1:2],
+                  df4 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.3year.noUpFront, "shared", "Standard", 3, "No Upfront")[, 1:2],
+                  df5 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.3year.partialUpFront, "shared", "Standard", 3, "Partial Upfront")[, 1:2],
+                  df6 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.standard.3year.allUpFront, "shared", "Standard", 3, "All Upfront")[, 1:2],
+                  df7 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.1year.noUpFront, "shared", "Convertible", 1, "No Upfront")[, 1:2],
+                  df8 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.1year.partialUpFront, "shared", "Convertible", 1, "Partial Upfront")[, 1:2],
+                  df9 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.1year.allUpFront, "shared", "Convertible", 1, "All Upfront")[, 1:2],
+                  df10 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.3year.noUpFront, "shared", "Convertible", 3, "No Upfront")[, 1:2],
+                  df11 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.3year.partialUpFront, "shared", "Convertible", 3, "Partial Upfront")[, 1:2],
+                  df12 <- OD.Spot.RI.data.prepare.datasets(RI.data.shared.convertible.3year.allUpFront, "shared", "Convertible", 3, "All Upfront")[, 1:2]
+                  )
+  
+  OD.Spot.RI.shared.all.prices <<- reduce(df_list, merge, by = "API.Name", all = TRUE)
+}
+
+OD.Spot.RI.data.merge.datasets()
+
 
 # Keeping only the numeric values
-OD_Spot_RI_shared_all_prices$Memory_GiB <- as.numeric(gsub("[^0-9.]", "", OD_Spot_RI_shared_all_prices$Memory_GiB))
-OD_Spot_RI_shared_all_prices$Costs_On_Demand <- as.numeric(gsub("[^0-9.]", "", OD_Spot_RI_shared_all_prices$Costs_On_Demand))
-OD_Spot_RI_shared_all_prices$Costs_Spot <- as.numeric(gsub("[^0-9.]", "", OD_Spot_RI_shared_all_prices$Costs_Spot))
-OD_Spot_RI_shared_all_prices$vCPUs <- as.numeric(sub(" .*", "", OD_Spot_RI_shared_all_prices$vCPUs))
-OD_Spot_RI_shared_all_prices$Network_Gbit <- as.numeric(gsub("[^0-9.]", "", OD_Spot_RI_shared_all_prices$Network_Gbit))
-#OD_Spot_RI_shared_all_prices[, 7:18] <- as.numeric(gsub("[^0-9.]", "", OD_Spot_RI_shared_all_prices[, 7:18]))
-OD_Spot_RI_shared_all_prices[, 7:18] <- apply(OD_Spot_RI_shared_all_prices[, 7:18], 2, function(x) as.numeric(gsub("[^0-9.]", "", x)))
-
+OD.Spot.RI.shared.all.prices$Memory.GiB <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Memory.GiB))
+OD.Spot.RI.shared.all.prices$OD.costs <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$OD.costs))
+OD.Spot.RI.shared.all.prices$Spot.costs <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Spot.costs))
+OD.Spot.RI.shared.all.prices$vCPUs <- as.numeric(sub(" .*", "", OD.Spot.RI.shared.all.prices$vCPUs))
+OD.Spot.RI.shared.all.prices$Network.Gbit <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Network.Gbit))
+OD.Spot.RI.shared.all.prices[, 7:18] <- apply(OD.Spot.RI.shared.all.prices[, 7:18], 2, function(x) as.numeric(gsub("[^0-9.]", "", x)))
 
 # Fixing the rows with x * 100 Gbit
-OD_Spot_RI_shared_all_prices$Network_Gbit[OD_Spot_RI_shared_all_prices$Network_Gbit == 16100] <- 1600
-OD_Spot_RI_shared_all_prices$Network_Gbit[OD_Spot_RI_shared_all_prices$Network_Gbit == 8100] <- 800
-OD_Spot_RI_shared_all_prices$Network_Gbit[OD_Spot_RI_shared_all_prices$Network_Gbit == 4100] <- 400
+OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 16100] <- 1600
+OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 8100] <- 800
+OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 4100] <- 400
 
 # Remove rows with N/A entries
-OD_Spot_RI_shared_all_prices <- na.omit(OD_Spot_RI_shared_all_prices)
+OD.Spot.RI.shared.all.prices <- na.omit(OD.Spot.RI.shared.all.prices)
 
 # remove burstable instances "t"
-OD_Spot_RI_shared_all_prices <- OD_Spot_RI_shared_all_prices[!grepl("^t", OD_Spot_RI_shared_all_prices$API_Name), ]
+OD.Spot.RI.shared.all.prices <- OD.Spot.RI.shared.all.prices[!grepl("^t", OD.Spot.RI.shared.all.prices$API.Name), ]
 
 # add instances starting with "a"
 #aws_data_trimmed_all_prices_2 <- OD_Spot_RI_shared_all_prices[!grepl("^a", OD_Spot_RI_shared_all_prices$API_Name), ]
 
 # Adding vCPU/$ for on demand prices
-OD_Spot_RI_shared_all_prices$vCPUs_per_Dollar_On_Demand <- OD_Spot_RI_shared_all_prices$vCPUs / OD_Spot_RI_shared_all_prices$Costs_On_Demand
+OD.Spot.RI.shared.all.prices$vCPUs.per.Dollar.On.Demand <- OD.Spot.RI.shared.all.prices$vCPUs / OD.Spot.RI.shared.all.prices$OD.costs
+
 
 
 # ------------------------------------------- SAVINGS PLANS -------------------------------------------- #
 
-# savings plans prices for region us-east-2
-SP_data <- read.csv("~/bachelor-thesis/aws_raw_data/aws_SP_all.csv")
+# savings plans prices for region us-east-2 -- could be extracted to function
+SP.data <- read.csv("~/bachelor-thesis/aws_raw_data/aws_SP_all.csv")
 
+# -- could be extracted to function
 # only keep relevant data
-SP_data <- SP_data %>%
+SP.data <- SP.data %>%
   select(c(rate, instanceType, tenancy, savingsPlanOffering.paymentOption, savingsPlanOffering.planType, savingsPlanOffering.durationSeconds))
 
 # converting seconds to years
-SP_data$savingsPlanOffering.durationSeconds <- SP_data$savingsPlanOffering.durationSeconds / 31536000
+SP.data$savingsPlanOffering.durationSeconds <- SP.data$savingsPlanOffering.durationSeconds / 31536000
 
 # renaming columns
-SP_data <- SP_data %>% 
-  rename(SP_Costs = rate, API_Name = instanceType, SP_Payment = savingsPlanOffering.paymentOption, SP_Plan = savingsPlanOffering.planType, 
+SP.data <- SP.data %>% 
+  rename(SP.Costs = rate, API.Name = instanceType, SP.Payment = savingsPlanOffering.paymentOption, SP.Plan = savingsPlanOffering.planType, 
          SP_Duration = savingsPlanOffering.durationSeconds)
 
-# Splitting dataset up into each version
-SP_data_shared_compute_1year_noUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 1 
-                                                             & SP_data$SP_Payment == "No Upfront") %>% 
-  rename(SP_Costs_shared_compute_1year_noUpFront = SP_Costs)
 
-SP_data_shared_compute_1year_partialUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 1 
-                                                                  & SP_data$SP_Payment == "Partial Upfront") %>% 
-  rename(SP_Costs_shared_compute_1year_partialUpFront = SP_Costs)
+# function for splitting up the raw SP_data dataset into seperate data sets for each savings plan option
+SP.data.split.dataset <- function(data, input.tenancy, plan, duration, payment) {
+  
+  column.name <- paste("SP.costs.", input.tenancy, ".", plan, ".", duration, "year.", gsub(" ", "", payment), sep = "")
+  
+  df <- data %>%
+           filter(tenancy == input.tenancy, SP.Plan == plan, SP_Duration == duration, SP.Payment == payment) %>%
+           rename(!!column.name := SP.Costs) %>%
+           distinct(API.Name, .keep_all = TRUE)
+}
 
-SP_data_shared_compute_1year_allUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 1 
-                                                              & SP_data$SP_Payment == "All Upfront") %>% 
-  rename(SP_Costs_shared_compute_1year_allUpFront = SP_Costs)
+# merging all data frames based on matching API names and creating final SP data set
+SP.data.merge.datasets <- function() {
+  
+  # using the SP.data.split function to create each dataset
+  df_list <- list(df1 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "No Upfront")[, 1:2],
+                  df2 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "Partial Upfront")[, 1:2],
+                  df3 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "All Upfront")[, 1:2],
+                  df4 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "No Upfront")[, 1:2],
+                  df5 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "Partial Upfront")[, 1:2],
+                  df6 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "All Upfront")[, 1:2],
+                  df7 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "No Upfront")[, 1:2],
+                  df8 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "Partial Upfront")[, 1:2],
+                  df9 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "All Upfront")[, 1:2],
+                  df10 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "No Upfront")[, 1:2],
+                  df11 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "Partial Upfront")[, 1:2],
+                  df12 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "All Upfront")[, 1:2]
+     )
+  
+  SP.shared.all.prices <<- reduce(df_list, merge, by = "API.Name", all = TRUE)
+}
 
-SP_data_shared_compute_3year_noUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 3 
-                                                             & SP_data$SP_Payment == "No Upfront") %>% 
-  rename(SP_Costs_shared_compute_3year_noUpFront = SP_Costs)
-
-SP_data_shared_compute_3year_partialUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 3 
-                                                                  & SP_data$SP_Payment == "Partial Upfront") %>% 
-  rename(SP_Costs_shared_compute_3year_partialUpFront = SP_Costs)
-
-SP_data_shared_compute_3year_allUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "Compute" & SP_data$SP_Duration == 3 
-                                                              & SP_data$SP_Payment == "All Upfront") %>% 
-  rename(SP_Costs_shared_compute_3year_allUpFront = SP_Costs)
-
-
-SP_data_shared_ec2instance_1year_noUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 1 
-                                                                 & SP_data$SP_Payment == "No Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_1year_noUpFront = SP_Costs)
-
-SP_data_shared_ec2instance_1year_partialUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 1 
-                                                                      & SP_data$SP_Payment == "Partial Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_1year_partialUpFront = SP_Costs)
-
-SP_data_shared_ec2instance_1year_allUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 1 
-                                                                  & SP_data$SP_Payment == "All Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_1year_allUpFront = SP_Costs)
-
-SP_data_shared_ec2instance_3year_noUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 3 
-                                                                 & SP_data$SP_Payment == "No Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_3year_noUpFront = SP_Costs)
-
-SP_data_shared_ec2instance_3year_partialUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 3 
-                                                                      & SP_data$SP_Payment == "Partial Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_3year_partialUpFront = SP_Costs)
-
-SP_data_shared_ec2instance_3year_allUpFront <- SP_data %>% filter(SP_data$tenancy == "shared" & SP_data$SP_Plan == "EC2Instance" & SP_data$SP_Duration == 3 
-                                                                  & SP_data$SP_Payment == "All Upfront") %>% 
-  rename(SP_Costs_shared_ec2instance_3year_allUpFront = SP_Costs)
+SP.data.merge.datasets()
 
 
 
 
 
-
-
-
-
-
-  ((3600 / aws_data_trimmed_all_prices_3$vCPUs) + (10 * 8) / (aws_data_trimmed_all_prices_3$Network_Gbit * 0.8)) * (aws_data_trimmed_all_prices_3$On_demand_Costs_Dollar_per_Hour / 3600)
