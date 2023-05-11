@@ -159,6 +159,23 @@ SP.shared.all.prices <- SP.shared.all.prices[!grepl("^t", SP.shared.all.prices$A
 
 
 
+# ------------------------------------------- SPOT INTERRUPTION FREQUENCIES -------------------------------------------- #
+
+Spot.interruption.freq <- read.csv("~/bachelor-thesis/aws_raw_data/spot_interruption_freq.csv")
+
+Spot.interruption.freq <- Spot.interruption.freq %>%
+  select(c(instanceType, interruptionFrequency)) %>%
+  rename(API.Name = instanceType, Interruption.Freq = interruptionFrequency)
+
+# calculating decimal values for interruption frequencies to use in calculations
+Spot.interruption.freq[, 2] <- case_when(Spot.interruption.freq[, 2] == '<5%' ~ 0.025,
+                                         Spot.interruption.freq[, 2] == '5-10%' ~ 0.075,
+                                         Spot.interruption.freq[, 2] == '10-15%' ~ 0.125,
+                                         Spot.interruption.freq[, 2] == '15-20%' ~ 0.175,
+                                         Spot.interruption.freq[, 2] == '>20%' ~ 0.225)
+
+
+
 # -------------------------------------- FINAL DATASETS --------------------------------------- #
 
 # Data set with all prices, Spot included 
@@ -173,13 +190,26 @@ aws.shared.all.prices.without.Spot <- aws.shared.all.prices[ , -6]
 # Data set with only on demand prices for basic version of algorithm
 aws.all.prices.OD.only <- aws.shared.all.prices[ , 1:5]
 
+# Data set with interruption frequencies included
+aws.shared.all.prices.with.interrupt.freq <- merge(aws.shared.all.prices, Spot.interruption.freq, by = "API.Name")
+
 
 
 # still missing:
-#   - Spot Interruption Frequencies
+#   - Spot Interruption Frequencies -> included
 #   - RI Market
 #   (- Prices for dedicated)
+#   - data set with instances that don't have all pricing options
+#   - use one big sql query
+#   - exclude a1? exclude metal?
+#   - split data preparation and data processing
 
+
+# write.csv(aws.shared.all.prices, "~/bachelor-thesis/aws.shared.all.prices.csv", row.names=FALSE)
+
+#setdiff(OD.Spot.RI.shared.all.prices[, 1], SP.shared.all.prices[, 1])
+#setdiff(SP.shared.all.prices[, 1], OD.Spot.RI.shared.all.prices[, 1])
+#setdiff(aws.shared.all.prices[, 1], Spot.interruption.freq[, 1])
 
 
 
