@@ -18,6 +18,20 @@ helper.format.plan.string <- function(plan) {
   return(plan_formatted)
 }
 
+helper.print.base.workload <- function(API.name, costs, required.instances, plan) {
+  output = paste("[", "Instance: ", API.name, "; Total Costs: ", costs, 
+                 "$; Number of Instances required: ", required.instances, 
+                 "; Plan: ", helper.format.plan.string(plan), "]", sep = "")
+  return(output)
+}
+
+helper.print.fluct.workload <- function(index, API.name, costs, required.instances, plan) {
+  output <- paste("[", "Spot Instance ", index, ": ", API.name, "; Total Costs: ", costs, 
+                  "$; Number of Instances required: ", required.instances, 
+                  "; Plan: ", plan, "]", sep = "")
+  return(output)
+}
+
 # --------------------------------- ALGORITHM FOR ON DEMAND w/o AMDAHL ---------------------------------------------- # 
 
 # Implementing algorithm to find cheapest On demand instance for given required CPU/h usage 
@@ -78,7 +92,7 @@ find.cheapest.instance.on.demand.v1 <- function(CPU.hours.per.hour) {
   cat(result_final, sep = "\n")
 }
 
-find.cheapest.instance.on.demand.v1(10)
+# find.cheapest.instance.on.demand.v1(10)
 
 
 
@@ -154,7 +168,7 @@ find.cheapest.instance.on.demand.v2 <- function(CPU.hours.per.hour) {
   cat(result_final, sep = "\n")
 }
 
-find.cheapest.instance.on.demand.v2(10)
+# find.cheapest.instance.on.demand.v2(10)
 
 
 
@@ -197,17 +211,11 @@ find.cheapest.instance.OD.RI.SP <- function(CPU.hours.per.hour) {
       if (current.instance.price < cheapest.price) {
         # empty list if there is a new cheapest instance 
         result <- list()
-        result <- append(result, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price, 
-                                       "$; Number of Instances required: ", number.of.instances.required.amdahl, 
-                                       "; Plan: ", helper.format.plan.string(instance.min.col.name), 
-                                       "]", sep = ""))
+        result <- append(result, helper.print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
         cheapest.price <- current.instance.price
       } else if (current.instance.price == cheapest.price) {
         # extend list if there is an equally cheap instance
-        result <- append(result, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price, 
-                                       "$; Number of Instances required: ", number.of.instances.required.amdahl, 
-                                       "; Plan: ", helper.format.plan.string(instance.min.col.name),
-                                       "]", sep = ""))
+        result <- append(result, helper.print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
         cheapest.price <- current.instance.price
       }
       
@@ -218,14 +226,10 @@ find.cheapest.instance.OD.RI.SP <- function(CPU.hours.per.hour) {
       # is it also the cheapest so far?
       if (current.instance.price < cheapest.price) {
         result <- list()
-        result <- append(result, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price, 
-                                       "$; Number of Instances required: ", 1, "; Plan: ", helper.format.plan.string(instance.min.col.name), 
-                                       "]", sep = ""))
+        result <- append(result, helper.print.base.workload(instance.name, current.instance.price, 1, instance.min.col.name))
         cheapest.price <- current.instance.price
       } else if (current.instance.price == cheapest.price) {
-        result <- append(result, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price, 
-                                       "$; Number of Instances required: ", 1, "; Plan: ", helper.format.plan.string(instance.min.col.name), 
-                                       "]", sep = ""))
+        result <- append(result, helper.print.base.workload(instance.name, current.instance.price, 1, instance.min.col.name))
         cheapest.price <- current.instance.price
       }
     }
@@ -236,7 +240,7 @@ find.cheapest.instance.OD.RI.SP <- function(CPU.hours.per.hour) {
   cat(result_final, sep = "\n")
 }
 
-find.cheapest.instance.OD.RI.SP(96)
+# find.cheapest.instance.OD.RI.SP(96)
 
 
 
@@ -269,6 +273,61 @@ find.cheapest.instance.OD.RI.SP.Spot <- function(CPU.hours.per.hour.base, CPU.ho
       instance.vCPU <- aws.shared.all.prices[i, "vCPUs"]
       instance.name <- aws.shared.all.prices[i, "API.Name"]
       
+      # searching for the cheapest instance of the base value only in the first iteration
+      if (j == 1) {
+        
+        # getting cheapest plan for base workload in each row and corresponding column name (only searching RIs and SPs)
+        instance.min.costs.per.API.base <- apply(aws.shared.all.prices[i, 7:29], 1, min)
+        instance.min.col.name.base <- names(aws.shared.all.prices)[apply(aws.shared.all.prices[i, 7:29], 1, which.min) + 6]
+        
+        # does one instance of the instance type alone have enough vCPUs to serve the need?
+        if (instance.vCPU < CPU.hours.per.hour.base) {
+          # if not, calculate how many instances would be required
+          number.of.instances.required.base <- ceiling(CPU.hours.per.hour.base / instance.vCPU)
+          
+          # using amdahls law to determine the number of instances necessary to cope with required workload (90% of parallelization assumed)
+          if (number.of.instances.required.base < amdahl.max) {
+            number.of.instances.required.base.amdahl <- ceiling(amdahl.reversed(0.90, number.of.instances.required.base))
+            current.instance.price.base <- instance.min.costs.per.API.base * number.of.instances.required.base.amdahl
+          } else {
+            # if the theoretically required instances are 10 or more, amdahls function goes to infinity, thus it is limited by 9
+            number.of.instances.required.base.amdahl <- ceiling(amdahl.reversed(0.90, amdahl.max))
+            current.instance.price.base <- instance.min.costs.per.API.base * number.of.instances.required.base.amdahl
+          }
+          
+          # is it also the cheapest so far?
+          if (current.instance.price.base < cheapest.price.base) {
+            # empty list if there is a new cheapest instance 
+            result.base <- list()
+            result.base <- append(result.base, helper.print.base.workload(instance.name, current.instance.price.base, 
+                                                                          number.of.instances.required.base.amdahl, instance.min.col.name.base))
+            cheapest.price.base <- current.instance.price.base
+          } else if (current.instance.price.base == cheapest.price.base) {
+            # extend list if there is an equally cheap instance
+            result.base <- append(result.base, helper.print.base.workload(instance.name, current.instance.price.base, 
+                                                                          number.of.instances.required.base.amdahl, instance.min.col.name.base))
+            cheapest.price.base <- current.instance.price.base
+          }
+          
+        } else {
+          # if number of vCPUs of an instance are equal or more that the ones required per hour, one instance is enough to serve usage
+          current.instance.price.base <- instance.min.costs.per.API.base
+          
+          # is it also the cheapest so far?
+          if (current.instance.price.base < cheapest.price.base) {
+            result.base <- list()
+            result.base <- append(result.base, helper.print.base.workload(instance.name, current.instance.price.base, 
+                                                                          1, instance.min.col.name.base))
+            cheapest.price.base <- current.instance.price.base
+          } else if (current.instance.price.base == cheapest.price.base) {
+            result.base <- append(result.base, helper.print.base.workload(instance.name, current.instance.price.base, 
+                                                                          1, instance.min.col.name.base))
+            cheapest.price.base <- current.instance.price.base
+          }
+        }
+      }
+      
+      
       # getting spot price in each row
       instance.min.costs.per.API.fluct <- aws.shared.all.prices[i, "Spot.costs"]
       
@@ -291,15 +350,13 @@ find.cheapest.instance.OD.RI.SP.Spot <- function(CPU.hours.per.hour.base, CPU.ho
         if (current.instance.price.fluct < cheapest.price.fluct) {
           # empty list if there is a new cheapest instance 
           result.fluct <- list()
-          result.fluct <- append(result.fluct, paste("[", "Spot Instance ", j, ": ", instance.name, "; Total Costs: ", current.instance.price.fluct, 
-                                         "$; Number of Instances required: ", number.of.instances.required.fluct.amdahl, 
-                                         "; Plan: Spot", "]", sep = ""))
+          result.fluct <- append(result.fluct, helper.print.fluct.workload(j, instance.name, current.instance.price.fluct, 
+                                                                           number.of.instances.required.fluct.amdahl, "Spot"))
           cheapest.price.fluct <- current.instance.price.fluct
         } else if (current.instance.price.fluct == cheapest.price.fluct) {
           # extend list if there is an equally cheap instance
-          result.fluct <- append(result.fluct, paste("[", "Spot Instance ", j, ": ", instance.name, "; Total Costs: ", current.instance.price.fluct, 
-                                               "$; Number of Instances required: ", number.of.instances.required.fluct.amdahl, 
-                                               "; Plan: Spot", "]", sep = ""))
+          result.fluct <- append(result.fluct, helper.print.fluct.workload(j, instance.name, current.instance.price.fluct, 
+                                                                           number.of.instances.required.fluct.amdahl, "Spot"))
           cheapest.price.fluct <- current.instance.price.fluct
         }
         
@@ -307,77 +364,19 @@ find.cheapest.instance.OD.RI.SP.Spot <- function(CPU.hours.per.hour.base, CPU.ho
         # if number of vCPUs of an instance are equal or more that the ones required per hour, one instance is enough to serve usage
         current.instance.price.fluct <- instance.min.costs.per.API.fluct
         
-        # is it also the cheapest so far?
-        if (current.instance.price.fluct < cheapest.price.fluct) {
+        # check if the current value in the fluctuating array is 0
+        if (CPU.hours.per.hour.fluct[[j]] == 0) {
           result.fluct <- list()
-          result.fluct <- append(result.fluct, paste("[", "Spot Instance ", j, ": ", instance.name, "; Total Costs: ", current.instance.price.fluct, 
-                                               "$; Number of Instances required: ", 1, "; Plan: Spot", "]", sep = ""))
+          result.fluct <- append(result.fluct, paste("[Spot Instance ", j, ": No additional Spot instances required]", sep = ""))
+        } else if (current.instance.price.fluct < cheapest.price.fluct) {
+          result.fluct <- list()
+          result.fluct <- append(result.fluct, helper.print.fluct.workload(j, instance.name, current.instance.price.fluct, 
+                                                                           1, "Spot"))
           cheapest.price.fluct <- current.instance.price.fluct
         } else if (current.instance.price.fluct == cheapest.price.fluct) {
-          result.fluct <- append(result.fluct, paste("[", "Spot Instance ", j, ": ", instance.name, "; Total Costs: ", current.instance.price.fluct, 
-                                               "$; Number of Instances required: ", 1, "; Plan: Spot", "]", sep = ""))
+          result.fluct <- append(result.fluct, helper.print.fluct.workload(j, instance.name, current.instance.price.fluct, 
+                                                                           1, "Spot"))
           cheapest.price.fluct <- current.instance.price.fluct
-        }
-      }
-      # FINISHED SEARCHING FOR CHEAPEST SPOT
-        
-      # searching for the cheapest instance of the base value only in the last iteration
-      if (j == length(CPU.hours.per.hour.fluct)) {
-        
-        # getting cheapest plan for base workload in each row and corresponding column name (only searching RIs and SPs)
-        instance.min.costs.per.API.base <- apply(aws.shared.all.prices[i, 7:29], 1, min)
-        instance.min.col.name.base <- names(aws.shared.all.prices)[apply(aws.shared.all.prices[i, 7:29], 1, which.min) + 6]
-         
-        # does one instance of the instance type alone have enough vCPUs to serve the need?
-        if (instance.vCPU < CPU.hours.per.hour.base) {
-          # if not, calculate how many instances would be required
-          number.of.instances.required.base <- ceiling(CPU.hours.per.hour.base / instance.vCPU)
-            
-          # using amdahls law to determine the number of instances necessary to cope with required workload (90% of parallelization assumed)
-          if (number.of.instances.required.base < amdahl.max) {
-            number.of.instances.required.base.amdahl <- ceiling(amdahl.reversed(0.90, number.of.instances.required.base))
-            current.instance.price.base <- instance.min.costs.per.API.base * number.of.instances.required.base.amdahl
-          } else {
-            # if the theoretically required instances are 10 or more, amdahls function goes to infinity, thus it is limited by 9
-            number.of.instances.required.base.amdahl <- ceiling(amdahl.reversed(0.90, amdahl.max))
-            current.instance.price.base <- instance.min.costs.per.API.base * number.of.instances.required.base.amdahl
-          }
-            
-          # is it also the cheapest so far?
-          if (current.instance.price.base < cheapest.price.base) {
-            # empty list if there is a new cheapest instance 
-            result.base <- list()
-            result.base <- append(result.base, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price.base, 
-                                            "$; Number of Instances required: ", number.of.instances.required.base.amdahl, 
-                                            "; Plan: ", helper.format.plan.string(instance.min.col.name.base), 
-                                            "]", sep = ""))
-            cheapest.price.base <- current.instance.price.base
-          } else if (current.instance.price.base == cheapest.price.base) {
-            # extend list if there is an equally cheap instance
-            result.base <- append(result.base, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price.base, 
-                                            "$; Number of Instances required: ", number.of.instances.required.base.amdahl, 
-                                            "; Plan: ", helper.format.plan.string(instance.min.col.name.base),
-                                            "]", sep = ""))
-            cheapest.price.base <- current.instance.price.base
-          }
-            
-        } else {
-          # if number of vCPUs of an instance are equal or more that the ones required per hour, one instance is enough to serve usage
-          current.instance.price.base <- instance.min.costs.per.API.base
-            
-          # is it also the cheapest so far?
-          if (current.instance.price.base < cheapest.price.base) {
-            result.base <- list()
-            result.base <- append(result.base, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price.base, 
-                                             "$; Number of Instances required: ", 1, "; Plan: ", helper.format.plan.string(instance.min.col.name.base), 
-                                             "]", sep = ""))
-            cheapest.price.base <- current.instance.price.base
-          } else if (current.instance.price.base == cheapest.price.base) {
-            result.base <- append(result.base, paste("[", "Instance: ", instance.name, "; Total Costs: ", current.instance.price.base, 
-                                             "$; Number of Instances required: ", 1, "; Plan: ", helper.format.plan.string(instance.min.col.name.base), 
-                                             "]", sep = ""))
-            cheapest.price.base <- current.instance.price.base
-          }
         }
       }
     }
@@ -390,12 +389,22 @@ find.cheapest.instance.OD.RI.SP.Spot <- function(CPU.hours.per.hour.base, CPU.ho
   cat(result.final.base, sep = "\n")
 }
 
-find.cheapest.instance.OD.RI.SP.Spot(50, list(0, 2, 3, 5, 3, 2, 6, 15, 18, 20, 19, 12, 11, 13, 15, 14, 17, 19, 24, 18, 18, 18, 13, 5))
-
-find.cheapest.instance.OD.RI.SP(50)
+find.cheapest.instance.OD.RI.SP.Spot(50, list(0, 15, 15, 15, 18, 2, 6, 15, 18, 20, 19, 12, 11, 13, 15, 14, 17, 19, 24, 18, 18, 18, 13, 50))
 
 
 
+
+# ---- Fragen ----
+#   - Wie ist der Ansatz mit unterschiedlichen Instanzen für jede Stunde? Mehr Overhead, dafür weniger wasted resources 
+#       -> theoretisch billigste Lösung, aber auch die beste? Realistisch?
+#   - Als nächstes: Wie baue ich das preislich mit ein? -> s. pptx -> einfach mal Mitte aus probabilities genommen
+#   - Könnte auch nur das Maximum nehmen und damit alle decken, wäre aber auch etwas verschwendet
+#   - Oder: Für ähnlich hohe Workloads meist sowieso gleiche Instanz, daher vielleicht die 2-3 am Anfang kaufen?
+#   - EC2 Autoscaling erlaubt es automatisch je nach workload zu skalieren -> Im Falle von Interruption einfach auf nächst bessere
+
+#   - Unterschied in datasets anschauen -> fehlen wichtige -> fehlt z.B. c6a, sollte man vielleicht mit rein nehmen, wie mit NA values umgehen?
+
+#   - Allgemeine Idee für später: Default werte sind unendliche Laufzeit etc., bei Bedarf kann man aber mehr spezifizieren
 
 
 # ---- Annahmen bisher ------
@@ -406,19 +415,10 @@ find.cheapest.instance.OD.RI.SP(50)
 #   - Es ist nicht schlimm, dass es bei SPs keine Garantie gibt, die Instanz auch wirklich zu erhalten
 
 
-
-
-
 # ----------- NOTES: ------------
-#   - Alle Daten vorhanden -> check
-#   - Ausgabe verbesseren und verschönern: Wie heißt die Instanz? Wie viele brauche ich davon? Wie teuer wird das? In welchem Plan soll man das kaufen? -> check
-#   - Eingabe direkt mit CPU hours pro Stunde und nicht pro Tag -> check
-#   - Bei kleinen Instanzen nicht linear skalieren sondern immer mit einem Faktor sodass sich Leistung z.B. nicht verdoppelt, sondern nur ver-1,8-facht (s. Amdahls law) -> check
-
-#   - Schwankenden Workload einbauen durch das mitgeben eines arrays mit 24 werten -> open
-#   - zweiter parameter für Spot: Wie viele CPU Stunden muss ich aufwenden um eine Inetrruption zu recovern. 
-#     Zusammen mit Wahrscheinlichkeit, dass die Interruption eintrifft
-#   - Unterschied in datasets anschauen -> fehlen wichtige?
-#   - Grade noch Spot Preise von einem bestimmten Zeitpunkt -> besser Durchschnitt über letzten 3 Monate
+#   - Schwankenden Workload einbauen durch das mitgeben eines arrays mit 24 werten -> check
+#   - zweiter parameter für Spot: Wie viele CPU Stunden muss ich aufwenden um eine Inetrruption zu recovern -> unklar???
+#     Zusammen mit Wahrscheinlichkeit, dass die Interruption eintrifft -> unklar???
+#   - Grade noch Spot Preise von einem bestimten Zeitpunkt -> besser Durchschnitt über letzten 3 Monate
 
 
