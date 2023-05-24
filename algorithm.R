@@ -403,6 +403,7 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
   prev.instances.required.fluct <- 0
   prev.instance.vCPU.fluct <- 0
   prev.instance.name.fluct <- ""
+  catch.iter <- 1
   
   # iterate through array of fluctuating values
   for (j in 1:length(CPU.hours.per.hour.fluct)) {
@@ -423,7 +424,6 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
       instance.vCPU <- aws.shared.all.prices[i, "vCPUs"]
       instance.name <- aws.shared.all.prices[i, "API.Name"]
       instance.min.costs.per.API.fluct <- aws.shared.all.prices[i, "Spot.costs"]
-      
       
       # does one instance of the instance type alone have enough vCPUs to serve the need of the fluctuating demands
       if (instance.vCPU < current.vCPU.demand.fluct) {
@@ -450,7 +450,6 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
           cheapest.instances.required <- number.of.instances.required.fluct.amdahl
         } 
         
-        
       } else {
         # if number of vCPUs of an instance are equal or more that the ones required per hour, one instance is enough to serve usage
         current.instance.price.fluct <- instance.min.costs.per.API.fluct
@@ -471,11 +470,16 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
     if (current.vCPU.demand.fluct == 0) {
       result.fluct <- paste("[Spot Instance ", j, ": No additional Spot instances required]", sep = "")
       print(result.fluct)
+      
+      # make sure the next iteration works if this was the first iteration
+      if (j == 1) {
+        catch.iter <- 2
+      }
       next
     }
     
-    # No previous instance in the first iteration
-    if (j == 1) {
+    # No previous instance in the first iteration or in the second if the first had no demand
+    if (j == catch.iter) {
       result.fluct <- print.fluct.workload(j, cheapest.name.fluct, cheapest.price.fluct, 
                                                   cheapest.instances.required, "Spot")
       print(result.fluct)
@@ -492,7 +496,7 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
     if (cheapest.name.fluct != prev.instance.name.fluct) {
       # if so, migration costs need to be added (calculated based on previous instance configuration)
       cheapest.price.fluct.mig <- cheapest.price.fluct + prev.instance.price.fluct * 
-                                    (migration.costs / (prev.instance.vCPU.fluct * prev.instances.required.fluct))
+          (migration.costs / (prev.instance.vCPU.fluct * prev.instances.required.fluct))
     }
     
     # calculating required instances and price for staying at the previous instance
@@ -509,12 +513,7 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
       new.instances.required.with.prev.amdahl <- ceiling(amdahl.reversed(0.90, amdahl.max))
       new.price.with.prev <- prev.instance.price.fluct.wo.amdahl * new.instances.required.with.prev.amdahl
     }
-    
-    # if its the same as required by the previous best config, do not scale with amdahl again and get previous price without mig costs
-    if (new.instances.required.with.prev.amdahl == prev.instances.required.fluct) {
-      new.price.with.prev <- prev.instance.price.fluct
-    } 
-    
+  
     # migrate or stay?
     if (cheapest.price.fluct.mig < new.price.with.prev) {
       # if migrate, print the instance with the added migration costs
@@ -535,7 +534,7 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
       
       # updating values
       prev.instance.price.fluct <- new.price.with.prev
-      prev.instance.price.fluct.wo.amdahl <- cheapest.price.fluct.wo.amdahl
+      prev.instance.price.fluct.wo.amdahl <- prev.instance.price.fluct.wo.amdahl
       prev.instance.name.fluct <- prev.instance.name.fluct
       prev.instances.required.fluct <- new.instances.required.with.prev.amdahl
       prev.instance.vCPU.fluct <- prev.instance.vCPU.fluct
@@ -546,26 +545,24 @@ find.cheapest.instance.Spot <- function(CPU.hours.per.hour.fluct, migration.cost
   }
 }
 
-find.cheapest.instance.Spot(list(10, 15, 15, 15, 18, 2, 6, 15, 18, 20, 19, 12, 11, 13, 15, 14, 17, 19, 24, 18, 18, 18, 13, 50), 10)
-
-find.cheapest.instance.OD.RI.SP.Spot(50, list(0, 15, 15, 15, 18, 2, 6, 15, 18, 20, 19, 12, 11, 13, 15, 14, 17, 19, 24, 18, 18, 18, 13, 50))
-
-# Tests
-list(8, 15, 26, 17, 18)
-list(2, 2, 16, 17, 18)
-list(2, 0, 16, 0, 18)
+find.cheapest.instance.Spot(list(8, 15, 26, 17, 18), 5)
 
 
-# funktioniert noch nicht wenn 0 ganz am Anfang steht
+
 # Angepasste Spot Preise einbeziehen
 # Base workload mit rein nehmen
+
+# neues dataframe mit allen amdahl configurationen (instanz + anzahl)
+# führt dazu dass migrationskosten immer gezahlt werden müssen
+
 
 
 # Annahmen Spot:
 #   - Eine Migration auf eine andere Instanz kostet Geld: Cm = T (in CPU/h, als Parameter in Funktion) * C (Kosten der aktuellen Instanz)
 #   - Zusätzlich wird nicht mit normalen sondern angepassten Spot Preisen gerechnet, die die Interruption frequencies berücksichtigen -> open
-#   - Keine Migrationskosten, wenn auf der gleichen Instanz skaliert wird
-#   - Der Migrationsaufwand ist konstant (egal von welcher auf welche Instanz)
+#   - Keine Migrationskosten, wenn auf der gleichen Instanz skaliert wird (egal ob runter oder hoch) -> innerhalb der gleichen Instantz nur einen
+#       Teil (50%) der Migrationskosten
+#   - Der Migrationsaufwand ist konstant (egal von welcher auf welche Instanz) 
 
 # Annahmen allgemein:
 #   - Es sind 90% der workloads parallelisierbar (s. Amdahl erster Parameter)
@@ -581,5 +578,6 @@ list(2, 0, 16, 0, 18)
 #   - Allgemeine Idee für später: Default werte sind unendliche Laufzeit etc., bei Bedarf kann man aber mehr spezifizieren
 #   - Berechnung Amdahl angepasst -> Rundungsfehler
 #   - Grade noch Spot Preise von einem bestimten Zeitpunkt -> besser Durchschnitt über letzten 3 Monate?
+#   - Passt die Rechnung vom Migration price? Zahle ich die alte länger oder die neue früher? -> passt
 
 
