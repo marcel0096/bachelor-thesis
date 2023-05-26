@@ -167,13 +167,12 @@ Spot.interruption.freq <- Spot.interruption.freq %>%
   select(c(instanceType, interruptionFrequency)) %>%
   rename(API.Name = instanceType, Interruption.Freq = interruptionFrequency)
 
-# calculating decimal values for interruption frequencies to use in calculations
-Spot.interruption.freq[, 2] <- case_when(Spot.interruption.freq[, 2] == '<5%' ~ 0.025,
-                                         Spot.interruption.freq[, 2] == '5-10%' ~ 0.075,
-                                         Spot.interruption.freq[, 2] == '10-15%' ~ 0.125,
-                                         Spot.interruption.freq[, 2] == '15-20%' ~ 0.175,
-                                         Spot.interruption.freq[, 2] == '>20%' ~ 0.225)
-
+# calculating decimal values for interruption frequencies to use in calculations (adapted for one hour)
+Spot.interruption.freq[, 2] <- case_when(Spot.interruption.freq[, 2] == '<5%' ~ (0.025 / (30 * 24)),
+                                         Spot.interruption.freq[, 2] == '5-10%' ~ (0.075 / (30 * 24)),
+                                         Spot.interruption.freq[, 2] == '10-15%' ~ (0.125 / (30 * 24)),
+                                         Spot.interruption.freq[, 2] == '15-20%' ~ (0.175 / (30 * 24)),
+                                         Spot.interruption.freq[, 2] == '>20%' ~ (0.225 / (30 * 24)))
 
 
 # -------------------------------------- FINAL DATASETS --------------------------------------- #
