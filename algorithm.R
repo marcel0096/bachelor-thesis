@@ -595,14 +595,45 @@ create.config.dataset <- function(amdahl.probability, amdahl.max, migration.cost
   return(aws.shared.all.configurations)
 }
 
+generate.dataframe <- function() {
+  df <- data.frame(
+    Workload_Type = character(),
+    Instance_Number = character(),
+    Instance_Type = character(),
+    Total_Costs = numeric(),
+    Num_Instances_Required = numeric(),
+    Plan = character(),
+    Migration_Costs = numeric(),
+    Migration_Time = numeric()
+  )
+  return(df)
+}
+
+populate.dataframe <- function(df, workload.tpye, instance.number, instance.type, total.costs, num.instances.req, plan, mig.costs, mig.time) {
+  df <- rbind(df, data.frame(
+    Workload_Type = workload.tpye,
+    Instance_Number = instance.number,
+    Instance_Type = instance.type,
+    Total_Costs = total.costs,
+    Num_Instances_Required = num.instances.req,
+    Plan = plan,
+    Migration_Costs = mig.costs,
+    Migration_Time = mig.time
+  ))
+  return(df)
+}
+
 
 get.base.workload <- function(CPU.hours.per.hour.base) {
+  
+  df <- generate.dataframe()
   
   amdahl.prob = 0.95
   amdahl.max = 20
   current.instance.price <- Inf
   cheapest.price <- Inf
   result <- ""
+  result.for.df <- list()
   
   # iterate through all rows in data frame to find cheapest instances
   for (i in 1:nrow(aws.shared.all.prices.with.interrupt.freq)) {
@@ -613,59 +644,55 @@ get.base.workload <- function(CPU.hours.per.hour.base) {
     instance.min.costs.per.API <- apply(aws.shared.all.prices.with.interrupt.freq[i, 7:29], 1, min)
     instance.min.col.name <- names(aws.shared.all.prices.with.interrupt.freq)[apply(aws.shared.all.prices.with.interrupt.freq[i, 7:29], 1, which.min) + 6]
     
-    # does one instance of the instance type alone have enough vCPUs to serve the need?
-    if (instance.vCPU < CPU.hours.per.hour.base) {
-      # if not, calculate how many instances would be required
-      number.of.instances.required <- ceiling(CPU.hours.per.hour.base / instance.vCPU)
-      
-      # using amdahls law to determine the number of instances necessary to cope with required workload (limited by amdahl.max - 1)
-      if (number.of.instances.required < amdahl.max) {
-        number.of.instances.required.amdahl <- ceiling(amdahl.reversed(amdahl.prob, number.of.instances.required))
-        current.instance.price <- instance.min.costs.per.API * number.of.instances.required.amdahl
-      } else {
-        # if the theoretically required instances are amdahl.max or more, amdahls function goes to infinity
-        number.of.instances.required.amdahl <- Inf
-        current.instance.price <- Inf 
-      }
-      
-      # is it also the cheapest so far?
-      if (current.instance.price < cheapest.price) {
-        # empty list if there is a new cheapest instance 
-        result <- list()
-        result <- append(result, print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
-        cheapest.price <- current.instance.price
-      } else if (current.instance.price == cheapest.price) {
-        # extend list if there is an equally cheap instance
-        result <- append(result, print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
-        cheapest.price <- current.instance.price
-      }
-      
+    # calculate how many instances would be required
+    number.of.instances.required <- ceiling(CPU.hours.per.hour.base / instance.vCPU)
+    
+    # using amdahls law to determine the number of instances necessary to cope with required workload (limited by amdahl.max - 1)
+    if (number.of.instances.required < amdahl.max) {
+      number.of.instances.required.amdahl <- ceiling(amdahl.reversed(amdahl.prob, number.of.instances.required))
+      current.instance.price <- instance.min.costs.per.API * number.of.instances.required.amdahl
     } else {
-      # if number of vCPUs of an instance are equal or more that the ones required per hour, one instance is enough to serve usage
-      current.instance.price <- instance.min.costs.per.API 
+      # if the theoretically required instances are amdahl.max or more, amdahls function goes to infinity
+      number.of.instances.required.amdahl <- Inf
+      current.instance.price <- Inf 
+    }
+    
+    # is it also the cheapest so far?
+    if (current.instance.price < cheapest.price) {
+      # empty list if there is a new cheapest instance 
+      result <- list()
+      result <- append(result, print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
+      result.for.df <- list()
+      result.for.df <- append(result.for.df, c(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
+      cheapest.price <- current.instance.price
       
-      # is it also the cheapest so far?
-      if (current.instance.price < cheapest.price) {
-        result <- list()
-        result <- append(result, print.base.workload(instance.name, current.instance.price, 1, instance.min.col.name))
-        cheapest.price <- current.instance.price
-      } else if (current.instance.price == cheapest.price) {
-        result <- append(result, print.base.workload(instance.name, current.instance.price, 1, instance.min.col.name))
-        cheapest.price <- current.instance.price
-      }
+    } else if (current.instance.price == cheapest.price) {
+      # extend list if there is an equally cheap instance
+      result <- append(result, print.base.workload(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
+      result.for.df <- append(result.for.df, c(instance.name, current.instance.price, number.of.instances.required.amdahl, instance.min.col.name))
+      cheapest.price <- current.instance.price
     }
   }
   
   if (CPU.hours.per.hour.base == 0) {
     print("No instances for base workload required")
+    df <- populate.dataframe(df, "Base", 0, "NA", 0, 0, "NA", 0, 0)
+    return(df)
   } else {
     # printing the result
     result_final <- paste(paste(result))
     cat(result_final, sep = "\n")
+    
+    # put every instance in a dataframe
+    for (j in seq(1, length(result.for.df), by = 4)) {
+      df <- populate.dataframe(df, "Base", 0, result.for.df[[j]], as.numeric(result.for.df[[j+1]]), result.for.df[[j+2]], result.for.df[[j+3]], 0, 0)
+    }
+    return(df)
   }
 }
 
-# get.base.workload(2432)
+#df2 <- get.base.workload(50)
+
 
 # find.cheapest.instance.OD.RI.SP(50)
 
@@ -677,7 +704,7 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
   print("Please note that currently only workloads up to 2432 CPU hours lead to realistic results.")
   
   # calculate and print the base workload
-  get.base.workload(CPU.hours.per.hour.base)
+  df <- get.base.workload(CPU.hours.per.hour.base)
   
   # setting amdahl parameters
   amdahl.max <- 20
@@ -740,6 +767,8 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
       result.fluct <- paste("[Spot Instance ", j, ": No additional Spot instances required]", sep = "")
       print(result.fluct)
       
+      df <- populate.dataframe(df, "Fluct", j, "NA", 0, 0, "Spot", 0, 0)
+      
       # make sure the next iteration works if this was the first iteration 
       if (j == 1) {
         catch.iter <- 2
@@ -750,6 +779,10 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
       result.fluct <- print.fluct.workload.mig(j, cheapest.name.fluct, cheapest.price.fluct, 
                                            cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
       print(result.fluct)
+      
+      df <- populate.dataframe(df, "Fluct", j, cheapest.name.fluct, cheapest.price.fluct, 
+                               cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
+      
       # updating values
       prev.instance.price.fluct <- cheapest.price.fluct
       prev.instance.price.fluct.wo.amdahl <- cheapest.price.fluct.wo.amdahl
@@ -794,6 +827,9 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
       # if migrate, print the instance with the added migration costs
       result.fluct <- print.fluct.workload.mig(j, cheapest.name.fluct, cheapest.price.fluct.mig, 
                                            cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
+ 
+      df <- populate.dataframe(df, "Fluct", j, cheapest.name.fluct, cheapest.price.fluct.mig, 
+                               cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
       
       # updating values
       prev.instance.price.fluct <- cheapest.price.fluct
@@ -808,6 +844,9 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
       result.fluct <- print.fluct.workload.mig(j, prev.instance.name.fluct, new.price.with.prev, 
                                            new.instances.required.with.prev.amdahl, "Spot", mig.costs.dollar, mig.time)
       
+      df <- populate.dataframe(df, "Fluct", j, prev.instance.name.fluct, new.price.with.prev, 
+                               new.instances.required.with.prev.amdahl, "Spot", mig.costs.dollar, mig.time)
+      
       # updating values
       prev.instance.price.fluct <- new.price.with.prev
       prev.instance.name.fluct <- prev.instance.name.fluct
@@ -818,10 +857,11 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
     #print the final instance configuration
     print(result.fluct)
   }
+  return(df)
 }
 
 
-find.cheapest.instance.final(200, list(8, 15, 26, 17, 18, 2432, 3, 8, 14), 10)
+df.example <- find.cheapest.instance.final(200, list(8, 15, 26, 17, 18, 24, 3, 8, 14, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5)
 
 find.cheapest.instance.Spot(list(8, 15, 26, 17, 18, 50, 3, 8, 14), 5)
 
@@ -844,7 +884,9 @@ list(8, 15, 26, 17, 18, 50, 3, 8, 14)
 # szenarien mit spezifischen Zahlen -> small, medium, large business
 # ggplots dazu 
 # Annahmen nochmal überprüfen
-# funktion dataframe zurückgeben für ggplot
+# funktion dataframe zurückgeben für ggplot -> check
+
+# Zahlen im Beispiel
 
 
 
