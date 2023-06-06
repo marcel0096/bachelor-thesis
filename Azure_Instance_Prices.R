@@ -2,7 +2,7 @@ library(dplyr)
 
 # importing csv export from https://azure-instances.info/?region=us-east
 
-azure_data <- read_csv("Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/Microsoft Azure Virtual Machine Comparison.csv")
+azure_data <- read_csv("./azure_gcp_data/Microsoft Azure Virtual Machine Comparison.csv")
 
 # removing unnecessary columns
 
