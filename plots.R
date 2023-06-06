@@ -32,10 +32,6 @@ ggplot(df.fluct, mapping = aes(x = Instance_Number, y = Total_Costs, color = Ins
   labs(x = "Hours", y = "Prices", color = "Instances") +
   theme_bw()
 
-
 # adapt axis
 # make exact price appear next to instance
-
-
-
 
