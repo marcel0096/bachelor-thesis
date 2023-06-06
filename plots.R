@@ -29,7 +29,8 @@ ggplot(df.fluct, mapping = aes(x = Instance_Number, y = Total_Costs, color = Ins
   geom_line(df.base, mapping = aes(x = Instance_Number, y = Total_Costs, color = Instance_Type)) +
   scale_y_continuous(name = "Prices - base", sec.axis = sec_axis(trans = ~. - df.base[1, "Total_Costs"], name = "Prices - fluct")) +
   scale_x_continuous(breaks = df.fluct$Instance_Number) +
-  labs(x = "Hours", y = "Prices", color = "Instances")
+  labs(x = "Hours", y = "Prices", color = "Instances") +
+  theme_bw()
 
 
 # adapt axis

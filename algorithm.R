@@ -591,7 +591,7 @@ create.config.dataset <- function(amdahl.probability, amdahl.max, migration.cost
     aws.shared.all.configurations[i, "Spot.costs.final"] <- 
       aws.shared.all.configurations[i, "instances.required.with.amdahl"] * aws.shared.all.configurations[i, "Spot.costs.real"]
   }
-  
+  debug.df <<- aws.shared.all.configurations
   return(aws.shared.all.configurations)
 }
 
@@ -701,7 +701,7 @@ get.base.workload <- function(CPU.hours.per.hour.base) {
 find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.hour.fluct, migration.costs) {
   
   # print demand warning
-  print("Please note that currently only workloads up to 2432 CPU hours lead to realistic results.")
+  print("Please note that the current implementation takes in workloads up to 2432 CPU hours per hour.")
   
   # calculate and print the base workload
   df <- get.base.workload(CPU.hours.per.hour.base)
@@ -861,7 +861,7 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
 }
 
 
-df.example <- find.cheapest.instance.final(200, list(8, 15, 26, 17, 18, 24, 3, 8, 14, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5)
+df.example <- find.cheapest.instance.final(16, list(8, 15, 26, 17, 18, 24, 3, 8, 14, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5)
 
 find.cheapest.instance.Spot(list(8, 15, 26, 17, 18, 50, 3, 8, 14), 5)
 
@@ -869,23 +869,23 @@ find.cheapest.instance.OD.RI.SP(200)
 
 
 list(8, 15, 26, 17, 18, 50, 3, 8, 14)
+list(8, 15, 26, 17, 18, 24, 3, 8, 14, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2)
 
 
+# Offen im Code:
+#   - Data processing anpassen
+#   - plots zu Szenarien machen
+#   - Szenarien als festgesetzte Liste von Parametern die dann benutzt werden
+#   - aktuellere und bessere Daten kriegen
+#   - Wieso ist der amdahl parameter bei 17 77 und nicht 76? Rundung? -> check: ganz bisschen über der Zahl -> evtl. nur aufrunden ab .1?
+#   - Evtl. Amdahl prob als parameter in die funktion und dann amdahl.max berechnen
 
-# migration costs mit printen -> check
-# migration CPU hours -> check
-
-# adapt amdahl parameter zu 0.95 und 20 -> check
-# base workload mit einbauen -> check
-
-# aufräumen + evtl. wiederholende Sektionen in Funktionen auslagern -> check
 
 
 # szenarien mit spezifischen Zahlen -> small, medium, large business
 # ggplots dazu 
 # Annahmen nochmal überprüfen
 # funktion dataframe zurückgeben für ggplot -> check
-
 # Zahlen im Beispiel
 
 
@@ -895,7 +895,7 @@ list(8, 15, 26, 17, 18, 50, 3, 8, 14)
 
 # Annahmen Spot:
 #   - Eine Migration auf eine andere Instanz kostet Geld: Cm = T (in CPU/h, als Parameter in Funktion) * C (Kosten der aktuellen Instanz)
-#   - Zusätzlich wird nicht mit normalen sondern angepassten Spot Preisen gerechnet, die die Interruption frequencies berücksichtigen -> open
+#   - Zusätzlich wird nicht mit normalen sondern angepassten Spot Preisen gerechnet, die die Interruption frequencies berücksichtigen -> check
 #   - Keine Migrationskosten, wenn auf der gleichen Instanz skaliert wird (egal ob runter oder hoch) -> innerhalb der gleichen Instantz nur einen
 #       Teil (50%) der Migrationskosten
 #   - Durch die angepassten Spot Preise sind Migrationskosten auch auf der gleichen Instanz einberechnet
