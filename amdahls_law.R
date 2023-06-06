@@ -6,12 +6,7 @@ amdahl <- function(p, n) {
   1 / ((1 - p) + (p / n))
 }
 
-amdahl(0.90, 6)
-
-
 # amdahls formula solved by n to determine the number of machines necessary to achieve a speedup of x
 amdahl.reversed <- function(p, x) {
   p / ((1 / x) - (1-p))
 }
-
-test <- amdahl.reversed(0.95, 16)
