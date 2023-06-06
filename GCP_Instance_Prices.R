@@ -2,7 +2,7 @@ library(dplyr)
 
 # importing csv export from https://gcpinstances.doit-intl.com/?region=us-east1
 
-gcp_data <- read_csv("Desktop/TUM - Wirtschaftsinformatik B.Sc./Bachelorarbeit/GCP Compute Engine Instance Comparison.csv")
+gcp_data <- read_csv("./azure_gcp_data/GCP Compute Engine Instance Comparison.csv")
 
 # removing unnecessary columns
 
