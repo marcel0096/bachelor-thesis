@@ -19,177 +19,185 @@ util.packages.load <- function() {
 
 aws.data.folder <- "./aws_raw_data"
 
-## ON DEMAND, SPOT AND RESERVED INSTANCES
-
-# function for preparing all RI data to be merged together
-OD.Spot.RI.data.prepare.datasets <- function(data, input.tenancy, plan, duration, payment) {
-  
-  column.name <- paste("RI.costs.", input.tenancy, ".", plan, ".", duration, "year.", gsub(" ", "", payment), sep = "")
-  
-  df <- data %>%
-    select(c(API.Name, Linux.Reserved.cost)) %>%
-    rename(!!column.name := Linux.Reserved.cost) %>%
-    distinct(API.Name, .keep_all = TRUE)
+aws.OD.prices.load <- function() {
+  aws.OD.prices <<- read.csv(paste(aws.data.folder, "OD_rates_2023-06-12.csv", sep = "/"))
 }
 
-# merging all data frames based on matching API names
-OD.Spot.RI.data.merge.datasets <- function(RI.data.list) {
-  
-  # using the OD.Spot.RI.data.prepare.datasets function to prepare each dataset
-  df_list <- list(df0 <- OD.Spot.RI.shared.all.prices,
-                  df1 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[1]], "shared", "Standard", 1, "No Upfront")[, 1:2],
-                  df2 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[2]], "shared", "Standard", 1, "Partial Upfront")[, 1:2],
-                  df3 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[3]], "shared", "Standard", 1, "All Upfront")[, 1:2],
-                  df4 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[4]], "shared", "Standard", 3, "No Upfront")[, 1:2],
-                  df5 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[5]], "shared", "Standard", 3, "Partial Upfront")[, 1:2],
-                  df6 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[6]], "shared", "Standard", 3, "All Upfront")[, 1:2],
-                  df7 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[7]], "shared", "Convertible", 1, "No Upfront")[, 1:2],
-                  df8 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[8]], "shared", "Convertible", 1, "Partial Upfront")[, 1:2],
-                  df9 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[9]], "shared", "Convertible", 1, "All Upfront")[, 1:2],
-                  df10 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[10]], "shared", "Convertible", 3, "No Upfront")[, 1:2],
-                  df11 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[11]], "shared", "Convertible", 3, "Partial Upfront")[, 1:2],
-                  df12 <- OD.Spot.RI.data.prepare.datasets(RI.data.list[[12]], "shared", "Convertible", 3, "All Upfront")[, 1:2]
-                  )
-  
-  OD.Spot.RI.shared.all.prices <- reduce(df_list, merge, by = "API.Name", all = TRUE)
-  return(OD.Spot.RI.shared.all.prices)
+aws.RI.prices.load <- function() {
+  aws.RI.prices <<- read.csv(paste(aws.data.folder, "RI_rates_2023-06-12.csv", sep = "/"))
 }
 
-aws.data.OD.RI.Spot.load <- function() {
+aws.SP.prices.load <- function() {
+  aws.SP.prices <<- read.csv(paste(aws.data.folder, "SP_rates_2023-06-12.csv", sep = "/"))
+}
+
+aws.Spot.prices.load <- function() {
+  aws.Spot.prices.1a <- read.csv(paste(aws.data.folder, "Spot_rates_useast1a_2023-06-12.csv", sep = "/"))
+  aws.Spot.prices.1b <- read.csv(paste(aws.data.folder, "Spot_rates_useast1b_2023-06-12.csv", sep = "/"))
+  aws.Spot.prices.1c <- read.csv(paste(aws.data.folder, "Spot_rates_useast1c_2023-06-12.csv", sep = "/"))
   
-  # On demand, Spot and RI prices retrieved from https://instances.vantage.sh on May 1st 2023 (us-east-2)
-  RI.data.shared.standard.1year.noUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_1year_noUpfront.csv", sep = "/"))
-  RI.data.shared.standard.1year.partialUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_1year_partialUpfront.csv", sep = "/"))
-  RI.data.shared.standard.1year.allUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_1year_allUpfront.csv", sep = "/"))
-  RI.data.shared.standard.3year.noUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_3year_noUpfront.csv", sep = "/"))
-  RI.data.shared.standard.3year.partialUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_3year_partialUpfront.csv", sep = "/"))
-  RI.data.shared.standard.3year.allUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_standard_3year_allUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.1year.noUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_1year_noUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.1year.partialUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_1year_partialUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.1year.allUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_1year_allUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.3year.noUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_3year_noUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.3year.partialUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_3year_partialUpfront.csv", sep = "/"))
-  RI.data.shared.convertible.3year.allUpFront <- read.csv(paste(aws.data.folder, "aws_OD_Spot_RI_shared_convertible_3year_allUpfront.csv", sep = "/"))
-  
-  # copy the first data set to build one big data set
-  OD.Spot.RI.shared.all.prices <- RI.data.shared.standard.1year.noUpFront
-  
-  # removing unnecessary columns and renaming remaining ones    
-  OD.Spot.RI.shared.all.prices <<- OD.Spot.RI.shared.all.prices %>%
-    select(c(`API.Name`, vCPUs, `Instance.Memory`, `Network.Performance`, `Linux.On.Demand.cost`, `Linux.Spot.Minimum.cost`)) %>% 
-    rename(Memory.GiB = `Instance.Memory`, Network.Gbit = `Network.Performance`, 
-           OD.costs = `Linux.On.Demand.cost`, Spot.costs = `Linux.Spot.Minimum.cost`)
-  
-  RI.data.list <- list(RI.data.shared.standard.1year.noUpFront, RI.data.shared.standard.1year.partialUpFront,
-                       RI.data.shared.standard.1year.allUpFront, RI.data.shared.standard.3year.noUpFront,
-                       RI.data.shared.standard.3year.partialUpFront, RI.data.shared.standard.3year.allUpFront,
-                       RI.data.shared.convertible.1year.noUpFront, RI.data.shared.convertible.1year.partialUpFront,
-                       RI.data.shared.convertible.1year.allUpFront, RI.data.shared.convertible.3year.noUpFront,
-                       RI.data.shared.convertible.3year.partialUpFront, RI.data.shared.convertible.3year.allUpFront)
-  
-  # merging data sets
-  OD.Spot.RI.shared.all.prices <- OD.Spot.RI.data.merge.datasets(RI.data.list)
-  
-  # Keeping only the numeric values
-  OD.Spot.RI.shared.all.prices$Memory.GiB <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Memory.GiB))
-  OD.Spot.RI.shared.all.prices$OD.costs <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$OD.costs))
-  OD.Spot.RI.shared.all.prices$Spot.costs <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Spot.costs))
-  OD.Spot.RI.shared.all.prices$vCPUs <- as.numeric(sub(" .*", "", OD.Spot.RI.shared.all.prices$vCPUs))
-  OD.Spot.RI.shared.all.prices$Network.Gbit <- as.numeric(gsub("[^0-9.]", "", OD.Spot.RI.shared.all.prices$Network.Gbit))
-  OD.Spot.RI.shared.all.prices[, 7:18] <- apply(OD.Spot.RI.shared.all.prices[, 7:18], 2, function(x) as.numeric(gsub("[^0-9.]", "", x)))
-  
-  # Fixing the rows with x * 100 Gbit
-  OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 16100] <- 1600
-  OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 8100] <- 800
-  OD.Spot.RI.shared.all.prices$Network.Gbit[OD.Spot.RI.shared.all.prices$Network.Gbit == 4100] <- 400
-  
-  # Remove rows with N/A entries
-  OD.Spot.RI.shared.all.prices <- na.omit(OD.Spot.RI.shared.all.prices)
-  
-  # remove burstable instances "t"
-  OD.Spot.RI.shared.all.prices <- OD.Spot.RI.shared.all.prices[!grepl("^t", OD.Spot.RI.shared.all.prices$API.Name), ]
-  
-  OD.Spot.RI.shared.all.prices <<- OD.Spot.RI.shared.all.prices
+  aws.Spot.prices <<- rbind(aws.Spot.prices.1a, aws.Spot.prices.1b, aws.Spot.prices.1c)
+}
+
+aws.Spot.interruption.freq.load <- function() {
+  aws.Spot.interruption.freq <<- read.csv(paste(aws.data.folder, "Spot_interruption_freq_2023-06-12.csv", sep = "/"))
 }
 
 
-## SAVINGS PLANS
+## PROCESS ON DEMAND INSTANCES
 
-# function for splitting up the raw SP_data dataset into seperate data sets for each savings plan option
-SP.data.split.dataset <- function(data, input.tenancy, plan, duration, payment) {
+aws.OD.prices.process <- function() {
   
-  column.name <- paste("SP.costs.", input.tenancy, ".", plan, ".", duration, "year.", gsub(" ", "", payment), sep = "")
+  aws.OD.prices.load()
   
-  df <- data %>%
-    filter(tenancy == input.tenancy, SP.Plan == plan, SP_Duration == duration, SP.Payment == payment) %>%
-    rename(!!column.name := SP.Costs) %>%
-    distinct(API.Name, .keep_all = TRUE)
-}
-
-# merging all data frames based on matching API names and creating final SP data set
-SP.data.merge.datasets <- function(SP.data) {
+  # remove duplicates
+  aws.OD.prices <- aws.OD.prices[aws.OD.prices$Hourly.Price != 0, ]
+  aws.OD.prices <- distinct(aws.OD.prices, Instance.Type, .keep_all = TRUE)
   
-  # using the SP.data.split function to create each dataset
-  df_list <- list(df1 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "No Upfront")[, 1:2],
-                  df2 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "Partial Upfront")[, 1:2],
-                  df3 <- SP.data.split.dataset(SP.data, "shared", "Compute", 1, "All Upfront")[, 1:2],
-                  df4 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "No Upfront")[, 1:2],
-                  df5 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "Partial Upfront")[, 1:2],
-                  df6 <- SP.data.split.dataset(SP.data, "shared", "Compute", 3, "All Upfront")[, 1:2],
-                  df7 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "No Upfront")[, 1:2],
-                  df8 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "Partial Upfront")[, 1:2],
-                  df9 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 1, "All Upfront")[, 1:2],
-                  df10 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "No Upfront")[, 1:2],
-                  df11 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "Partial Upfront")[, 1:2],
-                  df12 <- SP.data.split.dataset(SP.data, "shared", "EC2Instance", 3, "All Upfront")[, 1:2]
-  )
+  # rename and remove columns   
+  aws.OD.prices <- aws.OD.prices %>%
+    rename(API.Name = `Instance.Type`, vCPUs = `vCpus`, Memory.GiB = `Memory`, Network.Gbit = `Network`, 
+           OD.costs.hourly = `Hourly.Price`)  %>%
+    select(-Region)
   
-  SP.shared.all.prices <- reduce(df_list, merge, by = "API.Name", all = TRUE)
-  return(SP.shared.all.prices)
-}
-
-aws.data.SP.load <- function() {
+  # keep only numeric values
+  aws.OD.prices$Memory.GiB <- as.numeric(gsub("[^0-9.]", "", aws.OD.prices$Memory.GiB))
+  aws.OD.prices$OD.costs.hourly <- as.numeric(aws.OD.prices$OD.costs.hourly)
+  aws.OD.prices$vCPUs <- as.numeric(aws.OD.prices$vCPUs)
   
-  # savings plans prices for region us-east-2 (retrieved in 2020)
-  SP.data <- read.csv(paste(aws.data.folder, "aws_SP_all.csv", sep = "/"))
+  # remove all burstable instances t.*
+  aws.OD.prices <- aws.OD.prices[!grepl("^t", aws.OD.prices$API.Name), ]
   
-  SP.data <- SP.data %>%
-    select(c(rate, instanceType, tenancy, savingsPlanOffering.paymentOption, savingsPlanOffering.planType, savingsPlanOffering.durationSeconds)) %>%
-    rename(SP.Costs = rate, API.Name = instanceType, SP.Payment = savingsPlanOffering.paymentOption, SP.Plan = savingsPlanOffering.planType, 
-           SP_Duration = savingsPlanOffering.durationSeconds)
-  
-  # converting seconds to years
-  SP.data$SP_Duration <- SP.data$SP_Duration / 31536000
-  
-  # merge data sets
-  SP.shared.all.prices <- SP.data.merge.datasets(SP.data)
-  
-  # exclude burstable instances "t"
-  SP.shared.all.prices <- SP.shared.all.prices[!grepl("^t", SP.shared.all.prices$API.Name), ]
-  
-  SP.shared.all.prices <<- SP.shared.all.prices
+  # order data set alphabetically 
+  aws.OD.prices <<- aws.OD.prices[order(aws.OD.prices$API.Name), ]
+  row.names(aws.OD.prices) <- NULL
 }
 
 
-## SPOT INTERRUPTION FREQUENCIES
+## PROCESS RESERVED INSTANCES
 
-aws.data.spot.interruption.freq.load <- function() {
+aws.RI.prices.process <- function() {
   
-  # spot interruption frequencies for region us-east-2 (retrieved in 2020)
-  Spot.interruption.freq <- read.csv(paste(aws.data.folder, "spot_interruption_freq.csv", sep = "/"))
+  aws.RI.prices.load()
   
-  Spot.interruption.freq <- Spot.interruption.freq %>%
+  # keep only necessary columns   
+  aws.RI.prices <- aws.RI.prices %>%
+    select(c(InstanceType, OfferingClass, OfferingType, Duration, FixedPrice, RecurringCharges)) %>% 
+    rename(API.Name = `InstanceType`)
+  
+  # make duration and prices all numeric, eliminate space in OfferingType
+  aws.RI.prices$Duration <- as.numeric(aws.RI.prices$Duration)
+  aws.RI.prices$FixedPrice <- as.numeric(aws.RI.prices$FixedPrice)
+  aws.RI.prices$RecurringCharges <- as.numeric(gsub("[^0-9.]", "", aws.RI.prices$RecurringCharges))
+  aws.RI.prices$OfferingType <- gsub(" ", "", aws.RI.prices$OfferingType)
+  
+  # remove all burstable instances t.*
+  aws.RI.prices <- aws.RI.prices[!grepl("^t", aws.RI.prices$API.Name), ]
+  
+  # calculate hourly prices based on duration, fixed price and recurring charges
+  aws.RI.prices$RI.costs.hourly <- 
+    (aws.RI.prices[ , 'FixedPrice'] / (aws.RI.prices[ , 'Duration'] / 60 / 60)) + aws.RI.prices[ , 'RecurringCharges']
+  
+  # calculate duration from seconds to years
+  aws.RI.prices[, 'Duration'] <- ifelse(aws.RI.prices[, 'Duration'] == 31536000, 1, 3)
+  
+  # New column with full pricing name  
+  aws.RI.prices$column.names <- 
+    paste("RI.costs.hourly.shared.", aws.RI.prices$OfferingClass, ".", aws.RI.prices$Duration, "year.", aws.RI.prices$OfferingType, sep = "")
+  
+  # pivot data frame
+  aws.RI.prices <<- aws.RI.prices %>% 
+    select(c(API.Name, RI.costs.hourly, column.names)) %>% 
+    pivot_wider(names_from = column.names, values_from = RI.costs.hourly) %>% 
+    na.omit(aws.RI.prices)
+}
+
+
+## PROCESS SAVINGS PLANS
+
+aws.SP.prices.process <- function() {
+  
+  aws.SP.prices.load()
+  
+  # keep only necessary columns    
+  aws.SP.prices <- aws.SP.prices %>%
+    select(c(instanceType, tenancy, savingsPlanOffering.paymentOption, 
+             savingsPlanOffering.planType, savingsPlanOffering.durationSeconds, rate)) %>% 
+    rename(API.Name = `instanceType`)
+  
+  # only keep entries with shared tenancy
+  aws.SP.prices <- aws.SP.prices[aws.SP.prices$tenancy == 'shared', ]
+  
+  # calculate duration from seconds to years
+  aws.SP.prices[, 'savingsPlanOffering.durationSeconds'] <- 
+    ifelse(aws.SP.prices[, 'savingsPlanOffering.durationSeconds'] == 31536000, 1, 3)
+  
+  # make rate numeric, eliminate space in paymentOption
+  aws.SP.prices$rate <- as.numeric(aws.SP.prices$rate)
+  aws.SP.prices$savingsPlanOffering.paymentOption <- gsub(" ", "", aws.SP.prices$savingsPlanOffering.paymentOption)
+  
+  # remove all burstable instances t.*
+  aws.SP.prices <- aws.SP.prices[!grepl("^t", aws.SP.prices$API.Name), ]
+  
+  # New column with full pricing name
+  aws.SP.prices$column.names <- 
+    paste("SP.costs.hourly.shared.", aws.SP.prices$savingsPlanOffering.planType, ".", 
+          aws.SP.prices$savingsPlanOffering.durationSeconds, "year.", aws.SP.prices$savingsPlanOffering.paymentOption, sep = "")
+
+  # remove duplicates
+  aws.SP.prices <- aws.SP.prices[!duplicated(aws.SP.prices[ , c("API.Name", "column.names")]), ]
+  
+  # pivot data frame
+  aws.SP.prices <<- aws.SP.prices %>% 
+    select(c(API.Name, rate, column.names)) %>% 
+    pivot_wider(names_from = column.names, values_from = rate) %>% 
+    na.omit(aws.SP.prices)
+}
+
+
+## PROCESS SPOT INSTANCES
+
+aws.Spot.prices.process <- function() {
+  
+  aws.Spot.prices.load()
+  
+  aws.Spot.prices <- aws.Spot.prices %>%  
+    rename(API.Name = `InstanceType`, Spot.costs.hourly = `SpotPrice`)
+  
+  # remove all burstable instances t.*
+  aws.Spot.prices <- aws.Spot.prices[!grepl("^t", aws.Spot.prices$API.Name), ]
+  
+  # get mean for each instance over last three months
+  aws.Spot.prices <<- aggregate(Spot.costs.hourly ~ API.Name, data = aws.Spot.prices, mean)
+}
+
+
+## PROCESS SPOT INTERRUPTION FREQUENCIES
+
+aws.Spot.interruption.freq.process <- function() {
+  
+  aws.Spot.interruption.freq.load()
+  
+  aws.Spot.interruption.freq <- aws.Spot.interruption.freq %>%
     select(c(instanceType, interruptionFrequency)) %>%
     rename(API.Name = instanceType, Interruption.Freq = interruptionFrequency)
   
-  # calculating decimal values for interruption frequencies to use in calculations (adapted for one hour)
-  Spot.interruption.freq[, 2] <- case_when(Spot.interruption.freq[, 2] == '<5%' ~ (0.025 / (30 * 24)),
-                                           Spot.interruption.freq[, 2] == '5-10%' ~ (0.075 / (30 * 24)),
-                                           Spot.interruption.freq[, 2] == '10-15%' ~ (0.125 / (30 * 24)),
-                                           Spot.interruption.freq[, 2] == '15-20%' ~ (0.175 / (30 * 24)),
-                                           Spot.interruption.freq[, 2] == '>20%' ~ (0.225 / (30 * 24)))
+  # remove all burstable instances t.*
+  aws.Spot.interruption.freq <- aws.Spot.interruption.freq[!grepl("^t", aws.Spot.interruption.freq$API.Name), ]
   
-  Spot.interruption.freq <<- Spot.interruption.freq
+  # calculating decimal values for interruption frequencies to use in calculations (adapted for one hour)
+  aws.Spot.interruption.freq[, 2] <- case_when(aws.Spot.interruption.freq[, 2] == '<5%' ~ (0.025 / (30 * 24)),
+                                               aws.Spot.interruption.freq[, 2] == '5-10%' ~ (0.075 / (30 * 24)),
+                                               aws.Spot.interruption.freq[, 2] == '10-15%' ~ (0.125 / (30 * 24)),
+                                               aws.Spot.interruption.freq[, 2] == '15-20%' ~ (0.175 / (30 * 24)),
+                                               aws.Spot.interruption.freq[, 2] == '>20%' ~ (0.225 / (30 * 24)))
+  
+  aws.Spot.interruption.freq <<- aws.Spot.interruption.freq
+}
+
+create.all.prices.dataset <- function() {
+  aws.list <- list(aws.OD.prices, aws.RI.prices, aws.SP.prices, aws.Spot.prices, aws.Spot.interruption.freq)
+  aws.all.prices <<- aws.list %>% reduce(inner_join, by = 'API.Name')
 }
 
 
@@ -200,52 +208,32 @@ aws.data.spot.interruption.freq.load <- function() {
 #util.packages.install()
 util.packages.load()
 
-# On demand, Spot and Reserved Instances
-aws.data.OD.RI.Spot.load()
-
-# Savings plans
-aws.data.SP.load()
-
-# Spot interruption frequencies
-aws.data.spot.interruption.freq.load()
+# process the data of all pricing models
+aws.OD.prices.process()
+aws.RI.prices.process()
+aws.SP.prices.process()
+aws.Spot.prices.process()
+aws.Spot.interruption.freq.process()
 
 
-## FINAL DATASETS 
+## FINAL DATA SET
+create.all.prices.dataset()
 
-# Data set with all prices, Spot included 
-aws.shared.all.prices <- merge(OD.Spot.RI.shared.all.prices, SP.shared.all.prices, by = "API.Name", all = TRUE)
-
-# omitting all na values for now
-aws.shared.all.prices <- na.omit(aws.shared.all.prices)
-
-# Data set with all prices, Spot excluded 
-aws.shared.all.prices.without.Spot <- aws.shared.all.prices[ , -6]
-
-# Data set with only on demand prices for basic version of algorithm
-aws.all.prices.OD.only <- aws.shared.all.prices[ , 1:5]
-
-# Data set with interruption frequencies included
-aws.shared.all.prices.with.interrupt.freq <- merge(aws.shared.all.prices, Spot.interruption.freq, by = "API.Name")
+# create subsets for versions of algorithm
+aws.all.prices.OD <- aws.all.prices[ , 1:5]
+aws.all.prices.OD.RI.SP <- aws.all.prices[ , 1:29]
 
 
 
-# still missing:
-#   - Spot Interruption Frequencies -> included
-#   - RI Market
-#   (- Prices for dedicated)
-#   - data set with instances that don't have all pricing options
-#   - use one big sql query
-#   - exclude a1? exclude metal?
-#   - split data preparation and data processing
+# Annahmen data
+#   - Data was pulled via AWS API on the 12th of June 2023
+#   - The data is from region us-east-1, Spot prices are averaged over all 3 AZs in that region
+#   - Only instances with SHARED tenancy are included (not dedicated)
+#   - Burstable instances are excluded
+#   - Instances with incomplete data (e.g. no SP for 3 years) are excluded completely
+#   - Spot prices are averaged over the last 3 months since the retrieval of the data
+#   - Spot interruption frequency intervals are set to the mean value of lower and upper bound
+#   - RI Market prices are not included
 
 
 # write.csv(aws.shared.all.prices, "~/bachelor-thesis/aws.shared.all.prices.csv", row.names=FALSE)
-
-#setdiff(OD.Spot.RI.shared.all.prices[, 1], SP.shared.all.prices[, 1])
-#setdiff(SP.shared.all.prices[, 1], OD.Spot.RI.shared.all.prices[, 1])
-#setdiff(aws.shared.all.prices[, 1], Spot.interruption.freq[, 1])
-
-#SP.shared.all.prices["c6a.12xlarge", 1]
-
-
-
