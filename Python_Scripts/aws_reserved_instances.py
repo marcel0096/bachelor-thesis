@@ -20,21 +20,44 @@ def get_json(func, **kwargs):
 ec2 = boto3.client('ec2', region_name='us-east-1')
 
 # Create filters
-availabilityZone = 'us-east-1a'  # representative for region us-east-1 as prices do not differ between AZs in one region
+availabilityZone1a = 'us-east-1a'
+availabilityZone1b = 'us-east-1b'
+availabilityZone1c = 'us-east-1c'
 includeMarketplace = False
 instanceTenancy = 'default'
 filters = [{'Name': 'product-description', 'Values': ['Linux/UNIX']}]
 
-search_rates = get_json(ec2.describe_reserved_instances_offerings,
-                        AvailabilityZone=availabilityZone,
-                        IncludeMarketplace=includeMarketplace,
-                        InstanceTenancy=instanceTenancy,
-                        Filters=filters)
+search_rates_1a = get_json(ec2.describe_reserved_instances_offerings,
+                           AvailabilityZone=availabilityZone1a,
+                           IncludeMarketplace=includeMarketplace,
+                           InstanceTenancy=instanceTenancy,
+                           Filters=filters)
+
+search_rates_1b = get_json(ec2.describe_reserved_instances_offerings,
+                           AvailabilityZone=availabilityZone1b,
+                           IncludeMarketplace=includeMarketplace,
+                           InstanceTenancy=instanceTenancy,
+                           Filters=filters)
+
+search_rates_1c = get_json(ec2.describe_reserved_instances_offerings,
+                           AvailabilityZone=availabilityZone1c,
+                           IncludeMarketplace=includeMarketplace,
+                           InstanceTenancy=instanceTenancy,
+                           Filters=filters)
 
 # convert to pandas dataframe and save as csv
-df = pd.json_normalize(search_rates)
 path = '~/bachelor-thesis/aws_raw_data/'
-name = 'RI_rates_' + str(date.today()) + '.csv'
-df.to_csv(path + name, index=False)
+
+df1 = pd.json_normalize(search_rates_1a)
+name = 'RI_rates_useast1a_' + str(date.today()) + '.csv'
+df1.to_csv(path + name, index=False)
+
+df2 = pd.json_normalize(search_rates_1b)
+name = 'RI_rates_useast1b_' + str(date.today()) + '.csv'
+df2.to_csv(path + name, index=False)
+
+df3 = pd.json_normalize(search_rates_1c)
+name = 'RI_rates_useast1c_' + str(date.today()) + '.csv'
+df3.to_csv(path + name, index=False)
 
 exit(1)
