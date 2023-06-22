@@ -7,8 +7,10 @@ format.plan.string <- function(plan) {
 
   if (plan_parts[1] == "SP") {
     plan_formatted <- paste0("Savings Plan", " (", paste(plan_parts[4:6], collapse = ", "), ", ", plan_parts[7], ")")
-  } else {
+  } else if (plan_parts[1] == "RI") {
     plan_formatted <- paste0("Reserved Instance", " (", paste(plan_parts[4:6], collapse = ", "), ", ", plan_parts[7], ")")
+  } else {
+    plan_formatted <- "On Demand"
   }
 
   return(plan_formatted)
@@ -127,6 +129,8 @@ populate.dataframe <- function(df, workload.tpye, instance.number, instance.type
   return(df)
 }
 
+grep(paste(paste0(".*\\b(", "OD", ")"), collapse = ""), 
+     colnames(aws.all.prices), perl = TRUE)
 
 get.base.workload <- function(CPU.hours.per.hour.base, amdahl.prob, amdahl.max, plan, type, duration, payment) {
   
@@ -139,9 +143,14 @@ get.base.workload <- function(CPU.hours.per.hour.base, amdahl.prob, amdahl.max, 
   df <- generate.dataframe()
   
   # Determine which columns to search
-  target.columns <- grep(paste(paste0(".*\\b(", c(plan, type, duration, payment), ")"), collapse = ""), 
-                         colnames(aws.all.prices), perl = TRUE)
-
+  if (plan == "OD") {
+    target.columns <- grep(paste(paste0(".*\\b(", "OD", ")"), collapse = ""), 
+                           colnames(aws.all.prices), perl = TRUE)
+  } else {
+    target.columns <- grep(paste(paste0(".*\\b(", c(plan, type, duration, payment), ")"), collapse = ""), 
+                           colnames(aws.all.prices), perl = TRUE)
+  }
+  
   current.instance.price <- Inf
   cheapest.price <- Inf
   result <- ""
@@ -372,7 +381,7 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
 }
 
 df.example <- find.cheapest.instance.final(695, list(3648, 15, 26, 17, 18, 24, 3, 8, 2400, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5, 
-                                           plan = "SP", type = "EC2Instance|convertible", duration = "1|3", payment = "No|Partial")
+                                           plan = "RI", type = "EC2Instance|convertible", duration = "1|3", payment = "No|Partial")
 
 # ADAPT MIN ALGORITHM + SZENARIOS
 
