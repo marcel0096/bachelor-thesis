@@ -2,9 +2,13 @@
 
 ## Introduction
 
+- Mehr Motivation -> viele instanzen -> viele preispläne
+- Führt dazu dass einfach irgendwas geholt wird -> muss besser gehen
+
 - One or two introductory sentences about cloud computing (pay-as-you-go, flexibility to scale up and out, high reliability, ...)
+- Gegenbewegung gibt es auch -> zeigt dass es oft nicht gezielt durchgerechnet wurde -> Bedarf für automatisierte Lösung
 - What and why are there so many different services and price plans, particulary for VM services (as the foundation fo cloud services)
-- Explain what the different price plans mean? -> How detailed? -> Maybe high level which then applies to all cloud providers
+
 - Show Examples from Google, Azure and AWS -> see first Presentation
 - Show how much money can be saved by not just buying some random option on demand, but by carefully selecting a suitable VM with an appropriate price plan. Show that this can be optimized by splitting the VM selection across multiple instances with multiple price plans (e.g., Reserved Instance + Spot Instance)
 - Show that this is very hard and tedious to do manually, and thus real money is wasted (and that there is, to this point, no automated way of doing this) -> i.e. relevance of this thesis (maybe reference to another paper?)
@@ -14,20 +18,23 @@
 
 ## Terms and Definitions
 
-- Explain all terms used -> necessary?
+- Explain all terms used -> put in Background (danach muss man die Arbeit verstehen können)
 
 
 ## Background and Related Work
 
+- Explain what the different price plans mean? -> How detailed? -> Maybe high level which then applies to all cloud providers
 - Maybe put it behind approach and evaluation as there is not too much?
 - Further development of the idea of the paper "towards cost-optimal query processing in the cloud" -> cloud services far from being cost optimal
 - Paper that explored the optimal instance configuartion for cloud workloads (e.g. Bilal et al., Kaulakiene et al.)
+- Paper Maxi
 
 
 
 ## Approach
 
 - Basic Idea: Get aws EC2 pricing data and write an algorithm that uses this data and a target workload as an input parameter to determine the price optimal instance configuration (i.e. which instance type and how many of them)
+- Iterativen Schritte beschreiben -> leicht anfangen -> fluctuations einfügen -> etc.
 
 - Algorithm: Central Assumption -> Only vCPUs matter
 	- Input parameter: Required 
