@@ -84,7 +84,8 @@
 
 - everything that can be optimized but was too much for this thesis
 - e.g. not only use vCPUs as metric, but also other stats like memory and network
-
+- make migration costs not constant, but rather dependent on the instance type (large or small)
+- reconsider whether it makes sense or not to apply amdahl seperately between base and fluct
 
 
 ## Conclusion
