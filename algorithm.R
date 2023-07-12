@@ -38,72 +38,6 @@ print.fluct.workload.mig <- function(index, API.name, costs, required.instances,
 # ---------------------------------------------------- FINAL ALGORITHM -------------------------------------------------------------- # 
 # ----------------------------------------------------------------------------------------------------------------------------------- #
 
-## Final version using all pricing data available as well as spot interruption frequencies
-## Spot prices are adapted based on interruption frequencies and migration costs
-## Scaling with amdahl is more fine grained using a special rounding function
-## Base workload and fluctuating workload is printed as well as migration cost and migration time
-## Results are printed on console and put into data frame
-
-round.amdahl.instances <- function(amdahl.param, instances.required.wo.amdahl) {
-  
-  instances.required.with.amdahl <- amdahl.reversed(amdahl.param, instances.required.wo.amdahl)
-  
-  # only round up if value is at least .05 above the last integer
-  cut.off <- instances.required.with.amdahl %% 1
-  
-  if (cut.off > 0.05) {
-    return(ceiling(instances.required.with.amdahl))
-  } else {
-    return(floor(instances.required.with.amdahl))
-  }
-}
-
-# cache frequently created config data set to enhance performance
-cached.config.dataset <- NULL
-
-create.config.dataset <- function(amdahl.param, amdahl.max, migration.costs) {
-  
-  aws.shared.all.configurations <- aws.all.prices
-  
-  for (j in 1:nrow(aws.all.prices)) {
-    # calculate new spot prices based on interruption freq -> spot.real = spot + spot * freq * (mig.costs / vCPUs)
-    aws.shared.all.configurations[j, "Spot.costs.real"] <- aws.all.prices[j, "Spot.costs.hourly"] + 
-      aws.all.prices[j, "Spot.costs.hourly"] * 
-      aws.all.prices[j, "Interruption.Freq"] * (migration.costs / aws.all.prices[j, "vCPUs"])
-  }
-  
-  # duplicate rows to be adapted by amdahl
-  aws.shared.all.configurations <- 
-    aws.shared.all.configurations[rep(seq_len(nrow(aws.shared.all.configurations)), each = amdahl.max - 1), ]
-  
-  required = 1
-  for (i in 1:nrow(aws.shared.all.configurations)) {
-    
-    # create column with theoretically required instances
-    aws.shared.all.configurations[i, "instances.required.wo.amdahl"] <- required
-    required <- required + 1
-    
-    if (required == amdahl.max) {
-      required <- 1
-    }
-    
-    # create column with required instances adapted with amdahl
-    aws.shared.all.configurations[i, "instances.required.with.amdahl"] <- 
-      round.amdahl.instances(amdahl.param, aws.shared.all.configurations[i, "instances.required.wo.amdahl"])
-    
-    # create column with final spot price adapted by interruption freq and amdahl
-    aws.shared.all.configurations[i, "Spot.costs.final"] <- 
-      aws.shared.all.configurations[i, "instances.required.with.amdahl"] * 
-      aws.shared.all.configurations[i, "Spot.costs.real"]
-  }
-  
-  #assign(paste(c("config.df", amdahl.param), collapse = "."), aws.shared.all.configurations, envir = .GlobalEnv)
-  cached.config.dataset <<- aws.shared.all.configurations
-  
-  return(aws.shared.all.configurations)
-}
-
-
 generate.dataframe <- function() {
   df <- data.frame(
     Workload_Type = character(),
@@ -135,10 +69,70 @@ populate.dataframe <- function(df, workload.tpye, instance.number, instance.type
 }
 
 
-get.base.workload <- function(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment) {
+round.amdahl.instances <- function(amdahl.param, instances.required.wo.amdahl) {
+  
+  instances.required.with.amdahl <- amdahl.reversed(amdahl.param, instances.required.wo.amdahl)
+  
+  # only round up if value is at least .05 above the last integer
+  cut.off <- instances.required.with.amdahl %% 1
+  
+  if (cut.off > 0.05) {
+    return(ceiling(instances.required.with.amdahl))
+  } else {
+    return(floor(instances.required.with.amdahl))
+  }
+}
+
+
+# cache frequently created config data set to enhance performance
+cached.config.dataset <- NULL
+
+
+create.config.dataset <- function(amdahl.param, amdahl.max, migration.costs) {
+  
+  aws.shared.all.configurations <- aws.all.prices
+  
+  for (j in 1:nrow(aws.all.prices)) {
+    # calculate new spot prices based on interruption freq -> spot.real = spot + spot * freq * (mig.costs / vCPUs)
+    aws.shared.all.configurations[j, "Spot.costs.real"] <- aws.all.prices[j, "Spot.costs.hourly"] + 
+      aws.all.prices[j, "Spot.costs.hourly"] * 
+      aws.all.prices[j, "Interruption.Freq"] * (migration.costs / aws.all.prices[j, "vCPUs"])
+  }
+  
+  # populate the data frame with each potential configuration
+  aws.shared.all.configurations <- 
+    aws.shared.all.configurations[rep(seq_len(nrow(aws.shared.all.configurations)), each = amdahl.max - 1), ]
+  
+  required = 1
+  for (i in 1:nrow(aws.shared.all.configurations)) {
+    
+    aws.shared.all.configurations[i, "instances.required.wo.amdahl"] <- required
+    
+    required <- required + 1
+    if (required == amdahl.max) {
+      required <- 1
+    }
+    
+    aws.shared.all.configurations[i, "instances.required.with.amdahl"] <- 
+      round.amdahl.instances(amdahl.param, aws.shared.all.configurations[i, "instances.required.wo.amdahl"])
+    
+    aws.shared.all.configurations[i, "Spot.costs.final"] <- 
+      aws.shared.all.configurations[i, "instances.required.with.amdahl"] * 
+      aws.shared.all.configurations[i, "Spot.costs.real"]
+  }
+  
+  cached.config.dataset <<- aws.shared.all.configurations
+  
+  return(aws.shared.all.configurations)
+}
+
+
+get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, type, duration, payment) {
   
   # catch invalid combinations
-  if ((plan == "SP" & (type == "standard" | type == "convertible")) | (plan == "RI" & (type == "Compute" | type == "EC2Instance"))) {
+  if ((plan == "SP" & (type == "standard" | type == "convertible")) | 
+      (plan == "RI" & (type == "Compute" | type == "EC2Instance"))) {
+    
     print("Error: Invalid combination of price plans and options. Base workload cannot be calculated.")
     return()
   }
@@ -159,34 +153,32 @@ get.base.workload <- function(CPU.hours.per.hour.base, amdahl.param, amdahl.max,
   result <- ""
   result.for.df <- list()
 
+  # search whole data set and find cheapest option
   for (i in 1:nrow(aws.all.prices)) {
 
     instance.vCPU <- aws.all.prices[i, "vCPUs"]
     instance.name <- aws.all.prices[i, "API.Name"]
     
-    # getting cheapest plan in each row and corresponding column name
     if (length(target.columns) > 1) {
       instance.min.costs.per.API <- apply(aws.all.prices[i, target.columns], 1, min)
     } else {
       instance.min.costs.per.API <- sapply(aws.all.prices[i, target.columns], min)
     }
-    min.col.index <- which(aws.all.prices[i, target.columns] == instance.min.costs.per.API)
+    min.col.index <- which(aws.all.prices[i, target.columns] == instance.min.costs.per.API)[1]
     instance.min.col.name <- colnames(aws.all.prices)[target.columns[min.col.index]]
 
-    # calculate how many instances would be required
-    number.of.instances.required <- ceiling(CPU.hours.per.hour.base / instance.vCPU)
+    number.of.instances.required <- ceiling(workload.base / instance.vCPU)
 
     # using amdahls law to determine the number of instances necessary to cope with required workload (limited by amdahl.max - 1)
     if (number.of.instances.required < amdahl.max) {
       number.of.instances.required.amdahl <- round.amdahl.instances(amdahl.param, number.of.instances.required)
       current.instance.price <- instance.min.costs.per.API * number.of.instances.required.amdahl
     } else {
-      # if the theoretically required instances are amdahl.max or more, amdahls function goes to infinity
+      # if the theoretically required instances are >= amdahl.max -> Inf
       number.of.instances.required.amdahl <- Inf
       current.instance.price <- Inf
     }
 
-    # is it also the cheapest so far?
     if (current.instance.price < cheapest.price) {
       # empty list if there is a new cheapest instance
       result <- list()
@@ -203,194 +195,154 @@ get.base.workload <- function(CPU.hours.per.hour.base, amdahl.param, amdahl.max,
     }
   }
   
-  if (CPU.hours.per.hour.base == 0) {
+  if (workload.base == 0) {
     print("No instances for base workload required")
     df <- populate.dataframe(df, "Base", 0, "NA", 0, 0, "NA", 0, 0)
     return(df)
   } else {
-    # printing the result
     result_final <- paste(paste(result))
     cat(result_final, sep = "\n")
-    
+
     # put every instance in a data frame
     for (j in seq(1, length(result.for.df), by = 4)) {
-      df <- populate.dataframe(df, "Base", 0, result.for.df[[j]], as.numeric(result.for.df[[j+1]]), result.for.df[[j+2]], result.for.df[[j+3]], 0, 0)
+      df <- populate.dataframe(df, "Base", 0, result.for.df[[j]], as.numeric(result.for.df[[j+1]]), 
+                               result.for.df[[j+2]], result.for.df[[j+3]], 0, 0)
     }
     return(df)
   }
 }
 
 
-find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.hour.fluct, migration.costs, 
-                                         amdahl.param = 0.95, amdahl.max = 20,
-                                         plan = "OD|RI|SP", type = "standard|convertible|Compute|EC2Instance", 
-                                         duration = "1|3", payment = "All|Partial|No") {
+find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.hour.fluct, migration.costs,
+                                         plan = "OD|RI|SP", type = "standard|convertible|Compute|EC2Instance",
+                                         duration = "1|3", payment = "All|Partial|No", amdahl.param = 0.95) {
   
-  # get and print demand warning
+  # calculate the maximum value for amdahl
+  amdahl.max <- ceiling(1 / (1 - amdahl.param))
+  
+  # Get and print demand warning
   max.workload <- max(aws.all.prices$vCPUs) * (amdahl.max - 1)
-  print(paste(c("Please note that the current implementation takes in workloads up to", max.workload, "CPU hours per hour."), collapse = " "))
+  message("Please note that the current implementation takes in workloads up to ", max.workload, " CPU hours per hour.")
   
-  # calculate and print the base workload
+  # Calculate the base workload
   df <- get.base.workload(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment)
   
-  # check if needed data set is already in cache
+  # Check for cached data set
   if (!is.null(cached.config.dataset) && identical(amdahl.param, cached.amdahl.param)) {
-    aws.shared.all.configurations <- cached.config.dataset
+    aws.all.configs <- cached.config.dataset
   } else {
-    # Create working dataset
-    aws.shared.all.configurations <- create.config.dataset(amdahl.param, amdahl.max, migration.costs)
+    aws.all.configs <- create.config.dataset(amdahl.param, amdahl.max, migration.costs)
     cached.amdahl.param <<- amdahl.param
   }
   
-  # create local variables 
-  prev.instance.price.fluct <- 0
-  prev.instance.price.fluct.wo.amdahl <- 0
-  prev.instances.required.fluct <- 0
-  prev.instance.vCPU.fluct <- 0
-  prev.instance.name.fluct <- ""
+  # Helper variables
+  saw.prev <- FALSE
   catch.iter <- 1
-  saw.prev <- 1
   
-  # calculating best configuration for each hourly demand
+  # Calculating cost optimal instance configuration for each hourly workload demand
   for (j in 1:length(CPU.hours.per.hour.fluct)) {
     
-    # create temporary variables
-    current.instance.price.fluct <- Inf
-    cheapest.price.fluct <- Inf
-    cheapest.name.fluct <- ""
-    cheapest.vCPU.fluct <- 0
-    cheapest.instances.required <- 0
-    cheapest.instances.required.amdahl <- 0
-    cheapest.price.fluct.mig <- Inf
-    cheapest.price.fluct.wo.amdahl <- Inf
     current.vCPU.demand.fluct <- CPU.hours.per.hour.fluct[[j]]
-    mig.costs.dollar <- 0
-    mig.time <- 0
+    cheapest.instance <- NULL
+    current.instance <- NULL
     
-    # find the cheapest instance for the current demand
-    for (i in 1:nrow(aws.shared.all.configurations)) {
-      instance.vCPU <- aws.shared.all.configurations[i, "vCPUs"]
-      instance.name <- aws.shared.all.configurations[i, "API.Name"]
-      instance.min.costs.per.API.fluct <- aws.shared.all.configurations[i, "Spot.costs.final"]
+    for (i in 1:nrow(aws.all.configs)) {
+      
+      instance.vCPU <- aws.all.configs[i, "vCPUs"]
+      instance.name <- aws.all.configs[i, "API.Name"]
+      instance.min.costs.per.API.fluct <- aws.all.configs[i, "Spot.costs.final"]
       number.of.instances.required.fluct <- ceiling(current.vCPU.demand.fluct / instance.vCPU)
       
-      # Of each configuration for one instance, get only the spot price of the one that fits the demand
-      if (number.of.instances.required.fluct == aws.shared.all.configurations[i, "instances.required.wo.amdahl"]) {
-        current.instance.price.fluct <- instance.min.costs.per.API.fluct
+      if (number.of.instances.required.fluct == aws.all.configs[i, "instances.required.wo.amdahl"]) {
+        current.instance <- list(
+          name = instance.name,
+          price.fluct = instance.min.costs.per.API.fluct,
+          vCPU.fluct = instance.vCPU,
+          instances.required.amdahl = aws.all.configs[i, "instances.required.with.amdahl"]
+        )
       }
       
-      # is it the cheapest so far
-      if (current.instance.price.fluct < cheapest.price.fluct) {
-        # updating values
-        cheapest.price.fluct <- current.instance.price.fluct
-        cheapest.price.fluct.wo.amdahl <- aws.shared.all.configurations[i, "Spot.costs.real"]
-        cheapest.name.fluct <- instance.name
-        cheapest.vCPU.fluct <- instance.vCPU
-        cheapest.instances.required <- aws.shared.all.configurations[i, "instances.required.wo.amdahl"]
-        cheapest.instances.required.amdahl <- aws.shared.all.configurations[i, "instances.required.with.amdahl"]
+      if (is.null(cheapest.instance) || current.instance$price.fluct < cheapest.instance$price.fluct) {
+        cheapest.instance <- current.instance
       }
     }
     
-    # catching special cases
+    # Catch special case when there is no previous instance
     if (current.vCPU.demand.fluct == 0) {
-      result.fluct <- paste("[Spot Instance ", j, ": No additional Spot instances required]", sep = "")
-      print(result.fluct)
+      print(paste("[Spot Instance", j, ": No additional Spot instances required]"))
       
       df <- populate.dataframe(df, "Fluct", j, "NA", 0, 0, "Spot", 0, 0)
-
-      # make sure the next iteration works if this was the first iteration 
-      if (saw.prev == 1) {
+      if (!saw.prev) {
         catch.iter <- j + 1
       }
       next
     }
-    # print first workload after zeros
+    
+    # Print instance configuration for first workload above zero
     if (j == catch.iter) {
-      result.fluct <- print.fluct.workload.mig(j, cheapest.name.fluct, cheapest.price.fluct, 
-                                           cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
-      print(result.fluct)
+      print(print.fluct.workload.mig(j, cheapest.instance$name, cheapest.instance$price.fluct,
+                                     cheapest.instance$instances.required.amdahl, "Spot", 0, 0))
       
-      df <- populate.dataframe(df, "Fluct", j, cheapest.name.fluct, cheapest.price.fluct, 
-                               cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
+      df <- populate.dataframe(df, "Fluct", j, cheapest.instance$name, cheapest.instance$price.fluct,
+                               cheapest.instance$instances.required.amdahl, "Spot", 0, 0)
       
-      # updating values
-      prev.instance.price.fluct <- cheapest.price.fluct
-      prev.instance.price.fluct.wo.amdahl <- cheapest.price.fluct.wo.amdahl
-      prev.instance.name.fluct <- cheapest.name.fluct
-      prev.instances.required.fluct <- cheapest.instances.required.amdahl
-      prev.instance.vCPU.fluct <- cheapest.vCPU.fluct
-      saw.prev <- 0
+      prev.instance <- cheapest.instance
+      saw.prev <- TRUE
       next
     }
     
-    # is the best instance different from the one before?
-    if (cheapest.name.fluct != prev.instance.name.fluct) {
-      # if so, migration costs need to be added (calculated based on previous instance configuration)
-      mig.costs.dollar <- prev.instance.price.fluct * 
-        (migration.costs / (prev.instance.vCPU.fluct * prev.instances.required.fluct))
-      mig.time <- migration.costs / (prev.instance.vCPU.fluct * prev.instances.required.fluct)
+    # Migration only possible if proposed instance is different than the previous one
+    if (cheapest.instance$name != prev.instance$name) {
+      mig.costs.dollar <- prev.instance$price.fluct * 
+        (migration.costs / (prev.instance$vCPU.fluct * prev.instance$instances.required.amdahl))
+      cheapest.instance$price.fluct.mig <- cheapest.instance$price.fluct + mig.costs.dollar
+      mig.time <- migration.costs / (prev.instance$vCPU.fluct * prev.instance$instances.required.amdahl)
       
-      cheapest.price.fluct.mig <- cheapest.price.fluct + mig.costs.dollar
+    } else {
+      mig.costs.dollar <- 0
+      mig.time <- 0
+      cheapest.instance$price.fluct.mig <- cheapest.instance$price.fluct
     }
     
-    # calculating required instances and price for staying at the previous instance
-    new.instances.required.with.prev <- ceiling(current.vCPU.demand.fluct / prev.instance.vCPU.fluct)
+    # Calculate the costs of staying at the previous instance with the new workload
+    new.instances.required.with.prev <- ceiling(current.vCPU.demand.fluct / prev.instance$vCPU.fluct)
     
-    # catch case if new.instances.required.with.prev is bigger than amdahl.max -> no values in dataframe
+    # Scale with amdahls law
     if (new.instances.required.with.prev < amdahl.max) {
-      # get new price with prev based on prev name and new instances required
-      new.price.with.prev <- 
-        aws.shared.all.configurations$Spot.costs.final[aws.shared.all.configurations$API.Name == prev.instance.name.fluct &
-                                                       aws.shared.all.configurations$instances.required.wo.amdahl == new.instances.required.with.prev]
+      new.price.with.prev <- aws.all.configs$Spot.costs.final[aws.all.configs$API.Name == prev.instance$name &
+                                                                aws.all.configs$instances.required.wo.amdahl == new.instances.required.with.prev]
       
-      new.instances.required.with.prev.amdahl <- 
-        aws.shared.all.configurations$instances.required.with.amdahl[aws.shared.all.configurations$API.Name == prev.instance.name.fluct &
-                                                                     aws.shared.all.configurations$instances.required.wo.amdahl == new.instances.required.with.prev]
+      new.instances.required.with.prev.amdahl <-
+        aws.all.configs$instances.required.with.amdahl[aws.all.configs$API.Name == prev.instance$name &
+                                                         aws.all.configs$instances.required.wo.amdahl == new.instances.required.with.prev]
     } else {
       new.price.with.prev <- Inf
       new.instances.required.with.prev.amdahl <- Inf
     }
     
-    # migrate or stay?
-    if (cheapest.price.fluct.mig < new.price.with.prev) {
-      # if migrate, print the instance with the added migration costs
-      result.fluct <- print.fluct.workload.mig(j, cheapest.name.fluct, cheapest.price.fluct.mig, 
-                                           cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
- 
-      df <- populate.dataframe(df, "Fluct", j, cheapest.name.fluct, cheapest.price.fluct.mig, 
-                               cheapest.instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
+    # Migrate or stay
+    if (cheapest.instance$price.fluct.mig < new.price.with.prev) {
+      print(print.fluct.workload.mig(j, cheapest.instance$name, cheapest.instance$price.fluct.mig,
+                                     cheapest.instance$instances.required.amdahl, "Spot", mig.costs.dollar, mig.time))
       
-      # updating values
-      prev.instance.price.fluct <- cheapest.price.fluct
-      prev.instance.name.fluct <- cheapest.name.fluct
-      prev.instances.required.fluct <- cheapest.instances.required.amdahl
-      prev.instance.vCPU.fluct <- cheapest.vCPU.fluct
+      df <- populate.dataframe(df, "Fluct", j, cheapest.instance$name, cheapest.instance$price.fluct.mig,
+                               cheapest.instance$instances.required.amdahl, "Spot", mig.costs.dollar, mig.time)
       
+      prev.instance <- cheapest.instance
     } else {
-      # if stay, print the same instance as previous, but with updated values for price and instances required
-      mig.costs.dollar <- 0
-      mig.time <- 0
-      result.fluct <- print.fluct.workload.mig(j, prev.instance.name.fluct, new.price.with.prev, 
-                                           new.instances.required.with.prev.amdahl, "Spot", mig.costs.dollar, mig.time)
+      print(print.fluct.workload.mig(j, prev.instance$name, new.price.with.prev,
+                                     new.instances.required.with.prev.amdahl, "Spot", 0, 0))
       
-      df <- populate.dataframe(df, "Fluct", j, prev.instance.name.fluct, new.price.with.prev, 
-                               new.instances.required.with.prev.amdahl, "Spot", mig.costs.dollar, mig.time)
-      
-      # updating values
-      prev.instance.price.fluct <- new.price.with.prev
-      prev.instance.name.fluct <- prev.instance.name.fluct
-      prev.instances.required.fluct <- new.instances.required.with.prev
-      prev.instance.vCPU.fluct <- prev.instance.vCPU.fluct
+      df <- populate.dataframe(df, "Fluct", j, prev.instance$name, new.price.with.prev,
+                               new.instances.required.with.prev.amdahl, "Spot", 0, 0)
     }
-    
-    #print the final instance configuration
-    print(result.fluct)
   }
   return(df)
 }
 
-df.example <- find.cheapest.instance.final(695, list(0, 0, 0, 17, 18, 24, 3, 8, 2400, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5, 
-                                           plan = "RI", type = "standard", duration = "1", payment = "No|Partial|All")
+df.example <- find.cheapest.instance.final(20, list(16, 24, 500, 17, 18, 24, 3, 8, 2400, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 2) 
+                                    
+#df.example <- find.cheapest.instance.final(500, list(0), 24)
 
 
 # Notes:
