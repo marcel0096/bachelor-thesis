@@ -1,7 +1,8 @@
 # ----------------------------------------------------------------------------------------------------------------------------------- #
-# ---------------------------------------------- FORMATTING OUTPUT STRINGS ---------------------------------------------------------- # 
+# -------------------------------------------------------- FINAL ALGORITHM ---------------------------------------------------------- # 
 # ----------------------------------------------------------------------------------------------------------------------------------- #
 
+## Formatting functions for algorithm console output
 format.plan.string <- function(plan) {
   plan_parts <- strsplit(plan, ".", fixed = TRUE)[[1]]
 
@@ -34,10 +35,7 @@ print.fluct.workload.mig <- function(index, API.name, costs, required.instances,
 }
 
 
-# ----------------------------------------------------------------------------------------------------------------------------------- #
-# ---------------------------------------------------- FINAL ALGORITHM -------------------------------------------------------------- # 
-# ----------------------------------------------------------------------------------------------------------------------------------- #
-
+## Build data frame for algorithm result
 generate.dataframe <- function() {
   df <- data.frame(
     Workload_Type = character(),
@@ -53,10 +51,11 @@ generate.dataframe <- function() {
 }
 
 
-populate.dataframe <- function(df, workload.tpye, instance.number, instance.type, 
+## Fill data frame for algorithm result
+populate.dataframe <- function(df, workload.type, instance.number, instance.type, 
                                total.costs, num.instances.req, plan, mig.costs, mig.time) {
   df <- rbind(df, data.frame(
-    Workload_Type = workload.tpye,
+    Workload_Type = workload.type,
     Instance_Number = instance.number,
     Instance_Type = instance.type,
     Total_Costs = total.costs,
@@ -69,6 +68,7 @@ populate.dataframe <- function(df, workload.tpye, instance.number, instance.type
 }
 
 
+## Function for rounding uneven instance numbers after using amdahl
 round.amdahl.instances <- function(amdahl.param, instances.required.wo.amdahl) {
   
   instances.required.with.amdahl <- amdahl.reversed(amdahl.param, instances.required.wo.amdahl)
@@ -84,10 +84,10 @@ round.amdahl.instances <- function(amdahl.param, instances.required.wo.amdahl) {
 }
 
 
-# cache frequently created config data set to enhance performance
+## cache frequently created config data set to enhance performance
 cached.config.dataset <- NULL
 
-
+## Data set that contains all possible configurations for each instance type
 create.config.dataset <- function(amdahl.param, amdahl.max, migration.costs) {
   
   aws.shared.all.configurations <- aws.all.prices
@@ -127,7 +127,8 @@ create.config.dataset <- function(amdahl.param, amdahl.max, migration.costs) {
 }
 
 
-get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, type, duration, payment) {
+## Find instance configuration for base workload
+get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, type, duration, payment, processor) {
   
   # catch invalid combinations
   if ((plan == "SP" & (type == "standard" | type == "convertible")) | 
@@ -136,36 +137,45 @@ get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, typ
     print("Error: Invalid combination of price plans and options. Base workload cannot be calculated.")
     return()
   }
-    
-  df <- generate.dataframe()
+  
+  df.search <- aws.all.prices
+  # Exclude instances with wrong processor type
+  if (processor == "x86") {
+    df.search <- aws.all.prices[!(grepl("(?!^g).*g.*\\..*", aws.all.prices$API.Name, perl = TRUE) 
+                                  | grepl("^a1\\.", aws.all.prices$API.Name)), ]
+  } else if (processor == "arm") {
+    df.search <- aws.all.prices[(grepl("(?!^g).*g.*\\..*", aws.all.prices$API.Name, perl = TRUE) 
+                                 | grepl("^a1\\.", aws.all.prices$API.Name)), ]
+  }
   
   # Determine which columns to search
   if (plan == "OD") {
     target.columns <- grep(paste(paste0(".*\\b(", "OD", ")"), collapse = ""), 
-                           colnames(aws.all.prices), perl = TRUE)
+                           colnames(df.search), perl = TRUE)
   } else {
     target.columns <- grep(paste(paste0(".*\\b(", c(plan, type, duration, payment), ")"), collapse = ""), 
-                           colnames(aws.all.prices), perl = TRUE)
+                           colnames(df.search), perl = TRUE)
   }
   
+  df <- generate.dataframe()
   current.instance.price <- Inf
   cheapest.price <- Inf
   result <- ""
   result.for.df <- list()
 
   # search whole data set and find cheapest option
-  for (i in 1:nrow(aws.all.prices)) {
+  for (i in 1:nrow(df.search)) {
 
-    instance.vCPU <- aws.all.prices[i, "vCPUs"]
-    instance.name <- aws.all.prices[i, "API.Name"]
+    instance.vCPU <- df.search[i, "vCPUs"]
+    instance.name <- df.search[i, "API.Name"]
     
     if (length(target.columns) > 1) {
-      instance.min.costs.per.API <- apply(aws.all.prices[i, target.columns], 1, min)
+      instance.min.costs.per.API <- apply(df.search[i, target.columns], 1, min)
     } else {
-      instance.min.costs.per.API <- sapply(aws.all.prices[i, target.columns], min)
+      instance.min.costs.per.API <- sapply(df.search[i, target.columns], min)
     }
-    min.col.index <- which(aws.all.prices[i, target.columns] == instance.min.costs.per.API)[1]
-    instance.min.col.name <- colnames(aws.all.prices)[target.columns[min.col.index]]
+    min.col.index <- which(df.search[i, target.columns] == instance.min.costs.per.API)[1]
+    instance.min.col.name <- colnames(df.search)[target.columns[min.col.index]]
 
     number.of.instances.required <- ceiling(workload.base / instance.vCPU)
 
@@ -195,6 +205,7 @@ get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, typ
     }
   }
   
+  # Build output
   if (workload.base == 0) {
     print("No instances for base workload required")
     df <- populate.dataframe(df, "Base", 0, "NA", 0, 0, "NA", 0, 0)
@@ -213,19 +224,13 @@ get.base.workload <- function(workload.base, amdahl.param, amdahl.max, plan, typ
 }
 
 
+## Final Algorithm
 find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.hour.fluct, migration.costs,
                                          plan = "OD|RI|SP", type = "standard|convertible|Compute|EC2Instance",
-                                         duration = "1|3", payment = "All|Partial|No", amdahl.param = 0.95) {
+                                         duration = "1|3", payment = "All|Partial|No", processor = "arm|x86", amdahl.param = 0.95) {
   
   # calculate the maximum value for amdahl
   amdahl.max <- ceiling(1 / (1 - amdahl.param))
-  
-  # Get and print demand warning
-  max.workload <- max(aws.all.prices$vCPUs) * (amdahl.max - 1)
-  message("Please note that the current implementation takes in workloads up to ", max.workload, " CPU hours per hour.")
-  
-  # Calculate the base workload
-  df <- get.base.workload(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment)
   
   # Check for cached data set
   if (!is.null(cached.config.dataset) && identical(amdahl.param, cached.amdahl.param)) {
@@ -234,6 +239,22 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
     aws.all.configs <- create.config.dataset(amdahl.param, amdahl.max, migration.costs)
     cached.amdahl.param <<- amdahl.param
   }
+  
+  # apply processor filter
+  if (processor == "x86") {
+    aws.all.configs <- aws.all.configs[!(grepl("(?!^g).*g.*\\..*", aws.all.configs$API.Name, perl = TRUE) | 
+                                           grepl("^a1\\.", aws.all.configs$API.Name)), ]
+  } else if (processor == "arm") {
+    aws.all.configs <- aws.all.configs[(grepl("(?!^g).*g.*\\..*", aws.all.configs$API.Name, perl = TRUE) | 
+                                          grepl("^a1\\.", aws.all.configs$API.Name)), ]
+  }
+  
+  # Get and print demand warning
+  max.workload <- max(aws.all.configs$vCPUs) * (amdahl.max - 1)
+  message("Please note that the maximum workload demand is ", max.workload, " CPU hours per hour.")
+  
+  # Calculate the base workload
+  df <- get.base.workload(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment, processor)
   
   # Helper variables
   saw.prev <- FALSE
@@ -340,37 +361,8 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
   return(df)
 }
 
-df.example <- find.cheapest.instance.final(20, list(16, 24, 500, 17, 18, 24, 3, 8, 2400, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 2) 
-                                    
-#df.example <- find.cheapest.instance.final(500, list(0), 24)
+df.example <- find.cheapest.instance.final(20, 
+                                           list(16, 24, 500, 17, 18, 24, 3, 8, 1216, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 
+                                           2, 
+                                           processor = "x86") 
 
-
-# Notes:
-#   - szenarien mit spezifischen Zahlen -> small, medium, large business -> check
-#   - plots zu Szenarien machen -> in progress
-#   - Szenarien als festgesetzte Liste von Parametern die dann benutzt werden -> offen
-#   - Evtl. Amdahl prob als parameter in die funktion und dann amdahl.max berechnen -> offen
-#   - Bisher kein Check ob Spot Preis wirklich der billigste ist -> offen
-#   - Bisher kein Wachstum mit drinnen -> offen
-#   - Anpassen base load mit parameter damit man entscheiden kann für wie viele Jahre man sich committen will, evtl. auch growth rate -> check 
-#   - Evtl. auch Memory und Network als config mit rein? -> offen
-#   - Bei amdahl 0.99 und 100 ist der algorithmus sehr langsam, da riesiges data set
-
-# Annahmen Spot:
-#   - Eine Migration auf eine andere Instanz kostet Geld: Cm = T (in CPU/h, als Parameter in Funktion) * C (Kosten der aktuellen Instanz)
-#   - Zusätzlich wird nicht mit normalen sondern angepassten Spot Preisen gerechnet, die die Interruption frequencies berücksichtigen -> check
-#   - Keine Migrationskosten, wenn auf der gleichen Instanz skaliert wird (egal ob runter oder hoch) -> innerhalb der gleichen Instantz nur einen
-#       Teil (50%) der Migrationskosten
-#   - Durch die angepassten Spot Preise sind Migrationskosten auch auf der gleichen Instanz einberechnet
-#   - Der Migrationsaufwand ist konstant (egal von welcher auf welche Instanz) 
-#   - Bei Interruption freqs Mittelwert aus lower und upper bound
-#   - Double ceiling noch offen -> angepasst durch genauere Rundungsfunktion
-
-# Annahmen allgemein:
-#   - Es sind 95% der workloads parallelisierbar (s. Amdahl erster Parameter)
-#   - Laufzeit ist unendlich -> alle Preispläne sind relevant -> angepasst
-#   - Nur die Anzahl der vCPUs ist wichtig, da nur der Workload in CPU hours abgearbeitet werden muss
-#   - vCPUs werden behandelt wie normale CPUs, nicht wie Hyperthreads -> evtl. noch anpassen
-#   - Es ist nicht schlimm, dass es bei SPs keine Garantie gibt, die Instanz auch wirklich zu erhalten
-#   - Nur Instanzen inkludiert, die Daten auf allen Preisplänen, interruption freqs etc. haben
-#   - Bei Workloads sind bis zu 3648 CPU Stunden demand möglich -> Maximum was mit einer Instanz und Amdahl machbar ist

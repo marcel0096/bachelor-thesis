@@ -2,7 +2,7 @@
 # ------------------------------------------------ MIN VERSION OF FINAL ALGORITHM --------------------------------------------------- # 
 # ----------------------------------------------------------------------------------------------------------------------------------- #
 
-## Adapting only methods that are required 
+## Adapting only function that differ from algorithm.R
 
 # cache frequently created config data set to enhance performance
 cached.config.dataset.min <- NULL
@@ -49,19 +49,13 @@ create.config.dataset.min <- function(amdahl.param, amdahl.max, migration.costs)
 }
 
 
+## Algorithm using minimum spot prices
 find.cheapest.instance.final.min <- function(CPU.hours.per.hour.base, CPU.hours.per.hour.fluct, migration.costs,
                                              plan = "OD|RI|SP", type = "standard|convertible|Compute|EC2Instance",
-                                             duration = "1|3", payment = "All|Partial|No", amdahl.param = 0.95) {
+                                             duration = "1|3", payment = "All|Partial|No", processor = "arm|x86", amdahl.param = 0.95) {
   
   # calculate the maximum value for amdahl
   amdahl.max <- ceiling(1 / (1 - amdahl.param))
-  
-  # Get and print demand warning
-  max.workload <- max(aws.all.prices.min$vCPUs) * (amdahl.max - 1)
-  message("Please note that the current implementation takes in workloads up to ", max.workload, " CPU hours per hour.")
-  
-  # Calculate the base workload
-  df <- get.base.workload(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment)
   
   # Check for cached data set
   if (!is.null(cached.config.dataset.min) && identical(amdahl.param, cached.amdahl.param.min)) {
@@ -70,6 +64,22 @@ find.cheapest.instance.final.min <- function(CPU.hours.per.hour.base, CPU.hours.
     aws.all.configs <- create.config.dataset.min(amdahl.param, amdahl.max, migration.costs)
     cached.amdahl.param.min <<- amdahl.param
   }
+  
+  # apply processor filter
+  if (processor == "x86") {
+    aws.all.configs <- aws.all.configs[!(grepl("(?!^g).*g.*\\..*", aws.all.configs$API.Name, perl = TRUE) | 
+                                           grepl("^a1\\.", aws.all.configs$API.Name)), ]
+  } else if (processor == "arm") {
+    aws.all.configs <- aws.all.configs[(grepl("(?!^g).*g.*\\..*", aws.all.configs$API.Name, perl = TRUE) | 
+                                          grepl("^a1\\.", aws.all.configs$API.Name)), ]
+  }
+  
+  # Get and print demand warning
+  max.workload <- max(aws.all.configs$vCPUs) * (amdahl.max - 1)
+  message("Please note that the maximum workload demand is ", max.workload, " CPU hours per hour.")
+  
+  # Calculate the base workload
+  df <- get.base.workload(CPU.hours.per.hour.base, amdahl.param, amdahl.max, plan, type, duration, payment, processor)
   
   # Helper variables
   saw.prev <- FALSE
@@ -177,5 +187,5 @@ find.cheapest.instance.final.min <- function(CPU.hours.per.hour.base, CPU.hours.
 }
 
 df.example.min <- find.cheapest.instance.final.min(695, list(0, 0, 0, 17, 18, 24, 3, 8, 2300, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 2), 5, 
-                                           plan = "RI", type = "standard", duration = "1", payment = "No|Partial|All", amdahl.param = 0.92)
+                                           plan = "RI", type = "standard", duration = "1", payment = "No|Partial|All", processor = "x86")
 
