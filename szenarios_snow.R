@@ -3,8 +3,9 @@
 # ----------------------------------------------------------------------------------------------------------------------------------- #
 
 ## SZENARIO 1: Largest snowflake customer with 26335 queries on this day, using a total of 8257.860581 CPU hours per day, 344 per hour
+## Not used in Thesis
 
-# Cover max spike with base load -> Very expensive due to single high spike
+# Base workload only
 snow.szenario.1.1 <- function() {
   
   CPU.hours.required <- max(snowset.largest.cust.hourly$totalCpuTime)
@@ -16,7 +17,7 @@ snow.szenario.1.1 <- function() {
 }
 snow.szenario.1.1()
 
-# Cover everything with fluct workload
+# Fluct workload only
 snow.szenario.1.2 <- function() {
   
   CPU.hours.required <- 0
@@ -89,7 +90,7 @@ snow.szenario.1.5()
 
 ## SZENARIO 2: Large snowflake customer with 75066 queries on this day, using a total of 2943.92 CPU hours per day, 122.67 per hour
 
-# Cover max spike with base load
+# Base workload only
 snow.szenario.2.1 <- function() {
   
   CPU.hours.required <- max(snowset.large.cust.hourly$totalCpuTime)
@@ -103,7 +104,7 @@ snow.szenario.2.1 <- function() {
 }
 snow.szenario.2.1()
 
-# Cover everything with fluct workload
+# Fluct workload only
 snow.szenario.2.2 <- function() {
   
   CPU.hours.required <- 0
@@ -187,7 +188,7 @@ snow.szenario.2.4()
 
 ## SZENARIO 3: Middle snowflake customer with 18897 queries on this day, using a total of 362 CPU hours per day, 15.08 per hour
 
-# Cover max spike with base load
+# Base workload only
 snow.szenario.3.1 <- function() {
   
   CPU.hours.required <- max(snowset.middle.cust.hourly$totalCpuTime)
@@ -201,7 +202,7 @@ snow.szenario.3.1 <- function() {
 }
 snow.szenario.3.1()
 
-# Cover everything with fluct workload
+# Fluct workload only
 snow.szenario.3.2 <- function() {
   
   CPU.hours.required <- 0
@@ -220,8 +221,8 @@ snow.szenario.3.2()
 # Set base load to mean of all flucts
 snow.szenario.3.3 <- function() {
   
-  CPU.hours.required <- 15
-  CPU.hours.fluctuating <- as.list(ifelse((snowset.middle.cust.hourly$totalCpuTime - 15) < 0, 0, (snowset.middle.cust.hourly$totalCpuTime - 15)))
+  CPU.hours.required <- 16
+  CPU.hours.fluctuating <- as.list(ifelse((snowset.middle.cust.hourly$totalCpuTime - 16) < 0, 0, (snowset.middle.cust.hourly$totalCpuTime - 16)))
   
   # avg
   snow.szenario.3.3.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1)
@@ -284,7 +285,7 @@ snow.szenario.3.4()
 
 ## SZENARIO 4: Small snowflake customer with 18897 queries on this day, using a total of 44 CPU hours per day, 1.83 per hour
 
-# Cover max spike with base load
+# Base workload only
 snow.szenario.4.1 <- function() {
   
   CPU.hours.required <- max(snowset.small.cust.hourly$totalCpuTime)
@@ -298,17 +299,17 @@ snow.szenario.4.1 <- function() {
 }
 snow.szenario.4.1()
 
-# Cover everything with fluct workload
+# Fluct workload only
 snow.szenario.4.2 <- function() {
   
   CPU.hours.required <- 0
   CPU.hours.fluctuating <- as.list(snowset.small.cust.hourly$totalCpuTime)
   
-  snow.szenario.4.2.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.2.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   snow.szenario.4.2.total.daily.avg <<- sum(snow.szenario.4.2.avg[2:25, 'Total_Costs'])
   snow.szenario.4.2.total.monthly.avg <<- sum(snow.szenario.4.2.avg[2:25, 'Total_Costs']) * 30
   
-  snow.szenario.4.2.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.2.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   snow.szenario.4.2.total.daily.min <<- sum(snow.szenario.4.2.min[2:25, 'Total_Costs'])
   snow.szenario.4.2.total.monthly.min <<- sum(snow.szenario.4.2.min[2:25, 'Total_Costs']) * 30
 }
@@ -321,7 +322,7 @@ snow.szenario.4.3 <- function() {
   CPU.hours.fluctuating <- as.list(ifelse((snowset.small.cust.hourly$totalCpuTime - 2) < 0, 0, (snowset.small.cust.hourly$totalCpuTime - 2)))
   
   # avg
-  snow.szenario.4.3.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.3.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   
   total.price.base.avg.daily <- snow.szenario.4.3.avg[1, 'Total_Costs'] * 24
   total.price.fluct.avg.daily <- sum(snow.szenario.4.3.avg[2:25, 'Total_Costs'])
@@ -332,7 +333,7 @@ snow.szenario.4.3 <- function() {
   snow.szenario.4.3.total.monthly.avg <<- total.price.base.avg.monthly + total.price.fluct.avg.monthly
   
   # min
-  snow.szenario.4.3.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.3.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   
   total.price.base.min.daily <- snow.szenario.4.3.min[1, 'Total_Costs'] * 24
   total.price.fluct.min.daily <- sum(snow.szenario.4.3.min[2:25, 'Total_Costs'])
@@ -345,16 +346,16 @@ snow.szenario.4.3 <- function() {
 snow.szenario.4.3()
 
 # Alternate ratio to find optimum
-# -> with 1 base (0.99)    # -> with 1 base (0.95)   # -> with 2 base  # -> with 4 base  # -> with 3 base
-# avg: 1.43                # 1.43                    # 1.21            # 0.95            # 1.28            
-# min: 1.02                # 1.02                    # 0.97            # 0.94            # 1.24           
+# -> with 1 base       # -> with 2 base  # -> with 4 base  # -> with 3 base
+# 1.43                 # 1.14            # 0.95            # 1.28            
+# 1.02                 # 0.95            # 0.94            # 1.20           
 snow.szenario.4.4 <- function() {
   
   CPU.hours.required <- 4
   CPU.hours.fluctuating <- as.list(ifelse((snowset.small.cust.hourly$totalCpuTime - 4) < 0, 0, (snowset.small.cust.hourly$totalCpuTime - 4)))
   
   # avg
-  snow.szenario.4.4.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.4.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   
   total.price.base.avg.daily <- snow.szenario.4.4.avg[1, 'Total_Costs'] * 24
   total.price.fluct.avg.daily <- sum(snow.szenario.4.4.avg[2:25, 'Total_Costs'])
@@ -365,7 +366,7 @@ snow.szenario.4.4 <- function() {
   snow.szenario.4.4.total.monthly.avg <<- total.price.base.avg.monthly + total.price.fluct.avg.monthly
   
   # min
-  snow.szenario.4.4.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 1)
+  snow.szenario.4.4.min <<- find.cheapest.instance.final.min(CPU.hours.required, CPU.hours.fluctuating, 0.5)
   
   total.price.base.min.daily <- snow.szenario.4.4.min[1, 'Total_Costs'] * 24
   total.price.fluct.min.daily <- sum(snow.szenario.4.4.min[2:25, 'Total_Costs'])
@@ -377,6 +378,65 @@ snow.szenario.4.4 <- function() {
 }
 snow.szenario.4.4()
 
+
+## Alternating parameters for VH-2
+snow.szenario.5.1 <- function() {
+  
+  CPU.hours.required <- 8
+  CPU.hours.fluctuating <- as.list(ifelse((snowset.middle.cust.hourly$totalCpuTime - 8) < 0, 0, (snowset.middle.cust.hourly$totalCpuTime - 8)))
+  
+  # avg
+  snow.szenario.5.1.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1, duration = "1", payment = "No", plan = "SP", type = "Compute")
+  
+  total.price.base.avg.daily <- snow.szenario.5.1.avg[1, 'Total_Costs'] * 24
+  total.price.fluct.avg.daily <- sum(snow.szenario.5.1.avg[2:25, 'Total_Costs'])
+  snow.szenario.5.1.total.daily.avg <<- total.price.base.avg.daily + total.price.fluct.avg.daily
+  
+  total.price.base.avg.monthly <- snow.szenario.5.1.avg[1, 'Total_Costs'] * 24 * 30
+  total.price.fluct.avg.monthly <- sum(snow.szenario.5.1.avg[2:25, 'Total_Costs']) * 30
+  snow.szenario.5.1.total.monthly.avg <<- total.price.base.avg.monthly + total.price.fluct.avg.monthly
+}
+snow.szenario.5.1()
+
+
+## Alternating amdahl for VH-1
+snow.szenario.6.1 <- function() {
+  
+  CPU.hours.required <- 96
+  CPU.hours.fluctuating <- as.list(ifelse((snowset.large.cust.hourly$totalCpuTime - 96) < 0, 0, (snowset.large.cust.hourly$totalCpuTime - 96)))
+  
+  # avg
+  snow.szenario.6.1.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 2, amdahl.param = 0.99)
+  
+  total.price.base.avg.daily <- snow.szenario.6.1.avg[1, 'Total_Costs'] * 24 
+  total.price.fluct.avg.daily <- sum(snow.szenario.6.1.avg[2:25, 'Total_Costs']) 
+  snow.szenario.6.1.total.daily.avg <<- total.price.base.avg.daily + total.price.fluct.avg.daily
+  
+  total.price.base.avg.monthly <- snow.szenario.6.1.avg[1, 'Total_Costs'] * 24 * 30
+  total.price.fluct.avg.monthly <- sum(snow.szenario.6.1.avg[2:25, 'Total_Costs']) * 30
+  snow.szenario.6.1.total.monthly.avg <<- total.price.base.avg.monthly + total.price.fluct.avg.monthly
+}
+snow.szenario.6.1()
+
+
+## Using only x86 for VH-2
+snow.szenario.7.1 <- function() {
+  
+  CPU.hours.required <- 8
+  CPU.hours.fluctuating <- as.list(ifelse((snowset.middle.cust.hourly$totalCpuTime - 8) < 0, 0, (snowset.middle.cust.hourly$totalCpuTime - 8)))
+  
+  # avg
+  snow.szenario.7.1.avg <<- find.cheapest.instance.final(CPU.hours.required, CPU.hours.fluctuating, 1, processor = "x86")
+  
+  total.price.base.avg.daily <- snow.szenario.7.1.avg[1, 'Total_Costs'] * 24 
+  total.price.fluct.avg.daily <- sum(snow.szenario.7.1.avg[2:25, 'Total_Costs']) 
+  snow.szenario.7.1.total.daily.avg <<- total.price.base.avg.daily + total.price.fluct.avg.daily
+  
+  total.price.base.avg.monthly <- snow.szenario.7.1.avg[1, 'Total_Costs'] * 24 * 30
+  total.price.fluct.avg.monthly <- sum(snow.szenario.7.1.avg[2:25, 'Total_Costs']) * 30
+  snow.szenario.7.1.total.monthly.avg <<- total.price.base.avg.monthly + total.price.fluct.avg.monthly
+}
+snow.szenario.7.1()
 
 
 
