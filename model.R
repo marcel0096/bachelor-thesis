@@ -1,5 +1,6 @@
 source("./util.R")
 source("./aws.prices.R")
+source("./amdahls.law.R")
 
 ## ------------------------------------------------------------------------------------------------------------ ##
                                                 # Output helpers
@@ -56,6 +57,14 @@ print.base.workload <- function(API.name, costs, required.instances, plan) {
                  "$; Number of Instances required: ", required.instances,
                  "; Plan: ", format.plan.string(plan), "]", sep = "")
   
+  return(output)
+}
+
+
+print.fluct.workload <- function(index, API.name, costs, required.instances, plan) {
+  output <- paste("[", "Spot Instance ", index, ": ", API.name, "; Total Costs: ", costs, 
+                  "$; Number of Instances required: ", required.instances, 
+                  "; Plan: ", plan, "]", sep = "")
   return(output)
 }
 
