@@ -23,7 +23,7 @@ Files of interest:
 | aws.prices.R | Code for loading and manipulating AWS instance and pricing data retrieved vai boto3. 
 | model.R | The main model implementation as described in the thesis.
 | szenarios.snow.R | Evaluation of the model with Snowflake data. 
-| plots.r | `ggplot` sources for the plots shown in the thesis.
+| plots.R | `ggplot` sources for the plots shown in the thesis.
 
 The main algorithms relating to the model section in the paper are implemented in the functions `create.config.dataset`, `get.base.workload`, and `find.cheapest.instance.final` in `model.R`.
 
