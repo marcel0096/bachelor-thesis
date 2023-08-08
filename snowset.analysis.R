@@ -4,9 +4,10 @@ source("./util.R")
                                                 # Load snowset data 
 ## ------------------------------------------------------------------------------------------------------------ ##
 
-snowset <- read.csv.sql("~/Downloads/snowset-main.csv", sql = "select * 
-                                                               from file 
-                                                               WHERE DATE(createdTime) = '2018-02-22'")
+# please run the load.snowset.sh script first to download the snowset
+snowset <- read.csv.sql("./aws_raw_data/snowset-main.csv", sql = "select * 
+                                                                  from file 
+                                                                  WHERE DATE(createdTime) = '2018-02-22'")
 
 
 ## ------------------------------------------------------------------------------------------------------------ ##
