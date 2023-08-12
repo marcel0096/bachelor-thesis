@@ -20,7 +20,7 @@ To generate the plots used in the paper, please execute the respective code bloc
 Files of interest:
 | Path | Description 
 |-|-
-| aws.prices.R | Code for loading and manipulating AWS instance and pricing data retrieved vai boto3. 
+| aws.prices.R | Code for loading and manipulating AWS instance and pricing data retrieved via boto3. 
 | model.R | The main model implementation as described in the thesis.
 | szenarios.snow.R | Evaluation of the model with Snowflake data. 
 | plots.R | `ggplot` sources for the plots shown in the thesis.
