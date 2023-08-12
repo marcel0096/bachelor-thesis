@@ -31,7 +31,7 @@ snow.szenario.1.2 <- function() {
 }
 snow.szenario.1.2()
 
-# approaching cost-optimality
+# approaching cost-optimization
 snow.szenario.1.3 <- function() {
   CPU.hours.required <- 344
   CPU.hours.fluctuating <- as.list(ifelse((snowset.largest.cust.hourly$totalCpuTime - 344) < 0, 
@@ -51,7 +51,7 @@ snow.szenario.1.3 <- function() {
 }
 snow.szenario.1.3()
 
-# cost-optimality
+# cost-optimized
 snow.szenario.1.4 <- function() {
   CPU.hours.required <- 472
   CPU.hours.fluctuating <- as.list(ifelse((snowset.largest.cust.hourly$totalCpuTime - 472) < 0, 
@@ -104,7 +104,7 @@ snow.szenario.2.2 <- function() {
 }
 snow.szenario.2.2()
 
-# approaching cost-optimality
+# approaching cost-optimization
 snow.szenario.2.3 <- function() {
   CPU.hours.required <- 123
   CPU.hours.fluctuating <- as.list(ifelse((snowset.large.cust.hourly$totalCpuTime - 123) < 0, 
@@ -132,7 +132,7 @@ snow.szenario.2.3 <- function() {
 }
 snow.szenario.2.3()
 
-# cost-optimality
+# cost-optimized
 # -> with 96 base     # -> with 64 base   # -> with 80 base
 # 56.14               # 59.89             # 56.64
 # 50.26               # 48.93             # 50.70
@@ -198,7 +198,7 @@ snow.szenario.3.2 <- function() {
 }
 snow.szenario.3.2()
 
-# approaching cost-optimality
+# approaching cost-optimization
 snow.szenario.3.3 <- function() {
   CPU.hours.required <- 16
   CPU.hours.fluctuating <- as.list(ifelse((snowset.middle.cust.hourly$totalCpuTime - 16) < 0, 
@@ -226,7 +226,7 @@ snow.szenario.3.3 <- function() {
 }
 snow.szenario.3.3()
 
-# cost-optimality
+# cost-optimized
 # -> with 16 base     # -> with 12 base   # -> with 8 base  # -> with 4 base  # -> with 2 base  # -> with 32 base  # -> 24 base
 # avg: 7.60           # 8.25              # 7.02            # 8.60            # 9.24            # 11.23            # 10.37
 # min: 6.42           # 6.96              # 5.80            # 6.62            # 7.05            # 10.31            # 9.24
@@ -290,7 +290,7 @@ snow.szenario.4.2 <- function() {
 }
 snow.szenario.4.2()
 
-# approaching cost-optimality
+# approaching cost-optimization
 snow.szenario.4.3 <- function() {
   CPU.hours.required <- 2
   CPU.hours.fluctuating <- as.list(ifelse((snowset.small.cust.hourly$totalCpuTime - 2) < 0, 
@@ -318,7 +318,7 @@ snow.szenario.4.3 <- function() {
 }
 snow.szenario.4.3()
 
-# cost-optimality
+# cost-optimized
 # -> with 1 base       # -> with 2 base  # -> with 4 base  # -> with 3 base
 # 1.43                 # 1.14            # 0.95            # 1.28            
 # 1.02                 # 0.95            # 0.94            # 1.20           
