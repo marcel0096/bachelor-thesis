@@ -29,7 +29,7 @@ szenario1.1 <- function() {
 }
 szenario1.1()
 
-# Abschreibung über 3 Jahre
+# Amortization over 3 years
 # 2x due to direct costs such as power supply, infrastructure and maintainance 
 # see paper which proposes TCO = 2x server costs 
 # indirect costs such as salaries are not included, but would support the effect in the same direction
