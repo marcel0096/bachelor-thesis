@@ -1,4 +1,3 @@
-source("./util.R")
 source("./aws.prices.R")
 source("./amdahls.law.R")
 
