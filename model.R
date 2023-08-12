@@ -385,8 +385,9 @@ find.cheapest.instance.final <- function(CPU.hours.per.hour.base, CPU.hours.per.
                                                   # Example usage
 ## ------------------------------------------------------------------------------------------------------------ ##
 
-base.workload <- 20
-fluctuating.workload <- list(16, 24, 12, 17, 18, 24, 3, 8, 12, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 3)
-migration.costs <- 2
-
-result.example <- find.cheapest.instance.final(base.workload, fluctuating.workload, migration.costs)
+# Uncomment the following code to run the model with exemplary inputs
+# base.workload <- 20
+# fluctuating.workload <- list(16, 24, 12, 17, 18, 24, 3, 8, 12, 8, 15, 26, 17, 18, 50, 3, 8, 14, 10, 21, 15, 18, 6, 3)
+# migration.costs <- 2
+# 
+# result.example <- find.cheapest.instance.final(base.workload, fluctuating.workload, migration.costs)
