@@ -1,5 +1,4 @@
 source("./model.R")
-source("./snowset.analysis.R")
 
 ## ------------------------------------------------------------------------------------------------------------ ##
                                                 # Model with Growth
@@ -69,28 +68,33 @@ algorithm.with.growth <- function(growth.rate, workload.base, workload.fluct, mi
                                         # Example usage - Synthetic workload
 ## ------------------------------------------------------------------------------------------------------------ ##
 
-df.example.growth <- algorithm.with.growth(0.50, 
-                                           8, 
-                                           list(6, 6, 7, 7, 6, 7, 8, 6.5, 7.5, 24, 32, 6.3, 
-                                                6.5, 6, 7, 6.5, 8, 8, 6.3, 6.7, 7.2, 6.5, 7.6, 6),
-                                           2)
+# Uncomment the following code to run the model with exemplary inputs
+# df.example.growth <- algorithm.with.growth(0.50,
+#                                            8,
+#                                            list(6, 6, 7, 7, 6, 7, 8, 6.5, 7.5, 24, 32, 6.3,
+#                                                 6.5, 6, 7, 6.5, 8, 8, 6.3, 6.7, 7.2, 6.5, 7.6, 6),
+#                                            2)
 
 
 ## ------------------------------------------------------------------------------------------------------------ ##
                                       # Example usage - Snowset workload (VH-1)
 ## ------------------------------------------------------------------------------------------------------------ ##
 
-df.example.growth2 <- algorithm.with.growth(0.20, 
-                                            96, 
-                                            as.list(snowset.large.cust.hourly$totalCpuTime),
-                                            2)
+# requires to run snowset.analysis.R
+# Uncomment the following code to run the model with exemplary inputs
+# df.example.growth2 <- algorithm.with.growth(0.20, 
+#                                             96, 
+#                                             as.list(snowset.large.cust.hourly$totalCpuTime),
+#                                             2)
 
 
 ## ------------------------------------------------------------------------------------------------------------ ##
                                       # Example usage - Snowset workload (VH-2)
 ## ------------------------------------------------------------------------------------------------------------ ##
 
-df.example.growth3 <- algorithm.with.growth(0.20, 
-                                            8, 
-                                            as.list(snowset.middle.cust.hourly$totalCpuTime),
-                                            1)
+# requires to run snowset.analysis.R
+# Uncomment the following code to run the model with exemplary inputs
+# df.example.growth3 <- algorithm.with.growth(0.20, 
+#                                             8, 
+#                                             as.list(snowset.middle.cust.hourly$totalCpuTime),
+#                                             1)
