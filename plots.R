@@ -1104,7 +1104,7 @@ generate.plot.growth <- function() {
   ggplot() +
     geom_line(data = df, aes(x = hour_group, y = totalCpuTime, color = group), linetype = "dotted", size = 1.2, show.legend = FALSE) +
     scale_x_datetime(date_labels = "%H:%M") +
-    scale_color_manual(values = c("darkgrey", "black")) +
+    scale_color_manual(values = c("grey55", "black")) +
     ylim(0, 50) + 
     xlab("Time of day") +
     ylab("CPU hours per hour") +
@@ -1114,7 +1114,7 @@ generate.plot.growth <- function() {
           axis.title.x = element_text(size = 20),
           axis.title.y = element_text(size = 20),
           plot.title = element_text(hjust = 0.5)) +
-    annotate("text", x = as.POSIXct("2018-02-22 23:00:00"), y = 14, label = "In one year", color = "darkgrey", size = 5) +
+    annotate("text", x = as.POSIXct("2018-02-22 23:00:00"), y = 14, label = "In one year", color = "grey55", size = 5) +
     annotate("text", x = as.POSIXct("2018-02-22 23:00:00"), y = 4, label = "Today", color = "black", size = 5)
 }
 growth.workload <- generate.plot.growth()
@@ -1188,7 +1188,7 @@ generate.plot.growth.instances.1 <- function() {
               show.legend = FALSE) +
     scale_color_manual(values = c("#7E6148B2", "#00A087B2", "darkgoldenrod3", "#E64B35B2")) +
     geom_line(data = workload.wo.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "black", size = 1.2) +
-    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "darkgrey", size = 1.2) +
+    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "grey55", size = 1.2) +
     scale_x_datetime(date_labels = "%H:%M") +
     ylim(0, 50) + 
     xlab("Time of day") +
@@ -1265,7 +1265,7 @@ generate.plot.growth.instances.2 <- function() {
               show.legend = FALSE,
               color = c("#E64B35B2", "#7E6148B2")) +
     geom_line(data = workload.wo.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "black", size = 1.2) +
-    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "darkgrey", size = 1.2) +
+    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "grey55", size = 1.2) +
     scale_x_datetime(date_labels = "%H:%M") +
     ylim(0, 50) + 
     xlab("Time of day") +
@@ -1303,7 +1303,7 @@ generate.plot.growth.v2 <- function() {
   ggplot() +
     geom_line(data = df, aes(x = hour_group, y = totalCpuTime, color = group), linetype = "dotted", size = 1.2, show.legend = FALSE) +
     scale_x_datetime(date_labels = "%H:%M") +
-    scale_color_manual(values = c("darkgrey", "black")) +
+    scale_color_manual(values = c("grey55", "black")) +
     ylim(0, 300) + 
     xlab("Time of day") +
     ylab("CPU hours per hour") +
@@ -1313,7 +1313,7 @@ generate.plot.growth.v2 <- function() {
           axis.title.x = element_text(size = 20),
           axis.title.y = element_text(size = 20),
           plot.title = element_text(hjust = 0.5)) +
-    annotate("text", x = as.POSIXct("2018-02-22 23:00:00"), y = 140, label = "In one year", color = "darkgrey", size = 5) +
+    annotate("text", x = as.POSIXct("2018-02-22 23:00:00"), y = 140, label = "In one year", color = "grey55", size = 5) +
     annotate("text", x = as.POSIXct("2018-02-22 23:25:00"), y = 80, label = "Today", color = "black", size = 5)
 }
 growth.workload.v2 <- generate.plot.growth.v2()
@@ -1397,7 +1397,7 @@ generate.plot.growth.v2.instances <- function() {
               show.legend = FALSE) +
     scale_color_manual(values = c("#00A087B2", "#E64B35B2", "#7E6148B2", "darkgoldenrod3")) +
     geom_line(data = workload.wo.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "black", size = 1.2) +
-    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "darkgrey", size = 1.2) +
+    geom_line(data = workload.with.growth, aes(x = hour_group, y = totalCpuTime), linetype = "dotted", color = "grey55", size = 1.2) +
     scale_x_datetime(date_labels = "%H:%M") +
     ylim(0, 300) + 
     xlab("Time of day") +
