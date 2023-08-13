@@ -1,6 +1,6 @@
 # On automated price model choice in the cloud - Model Implementation
 
-The implementation for the cost model introduced in the bachelor's thesis "On automated price model choice in the cloud" written at the Chair of Decentralized Information Systems and Data Management at TUM.
+The implementation for the model introduced in the bachelor's thesis "On automated price model choice in the cloud" written at the Chair of Decentralized Information Systems and Data Management at TUM (see `thesis-final.pdf`).
 
 ## Running
 
